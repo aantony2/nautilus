@@ -47,7 +47,7 @@ export default function Services() {
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white">Kubernetes Services</h1>
+              <h1 className="text-lg font-semibold text-white">Services</h1>
             </div>
             <div className="flex items-center space-x-3">
               <div className="relative rounded-md w-64">
@@ -60,14 +60,6 @@ export default function Services() {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={refreshData}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
             </div>
           </div>
         </header>

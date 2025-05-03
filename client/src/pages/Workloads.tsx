@@ -62,14 +62,6 @@ export default function Workloads() {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={refreshData}
-                disabled={isLoading}
-              >
-                <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
-              </Button>
             </div>
           </div>
         </header>
