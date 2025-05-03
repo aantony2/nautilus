@@ -42,17 +42,15 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getQueryFn } from "@/lib/queryClient";
 import { NamespaceData } from "@shared/schema";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Namespaces() {
   const [location, setLocation] = useLocation();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clusterFilter, setClusterFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const { toast } = useToast();
 
   // Fetch namespaces data
-  const { data: namespaces, isLoading, refetch } = useQuery({
+  const { data: namespaces, isLoading } = useQuery({
     queryKey: ["/api/namespaces"],
     queryFn: getQueryFn({ on401: "throw" }),
   }) as { data: NamespaceData[] | undefined, isLoading: boolean };
@@ -147,14 +145,7 @@ export default function Namespaces() {
     );
   }, [filteredNamespaces]);
   
-  const refreshData = () => {
-    refetch();
-    
-    toast({
-      title: "Namespaces refreshed",
-      description: "Namespace data has been updated",
-    });
-  };
+
 
   // Get unique clusters for filtering
   const uniqueClusters = useMemo(() => {
@@ -205,16 +196,6 @@ export default function Namespaces() {
               <h1 className="text-lg font-semibold text-white">Kubernetes Namespaces</h1>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="relative rounded-md w-64">
-                <Input
-                  type="text"
-                  placeholder="Search namespaces..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white pl-10"
-                />
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              </div>
               <Button 
                 variant="outline" 
                 size="sm"
@@ -225,17 +206,23 @@ export default function Namespaces() {
                 <DownloadIcon className="h-4 w-4 mr-2" />
                 Export CSV
               </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={refreshData}
-                disabled={isLoading}
-              >
-                <RefreshCw className="h-5 w-5" />
-              </Button>
             </div>
           </div>
         </header>
+        
+        {/* Search Bar */}
+        <div className="bg-slate-800 border-b border-slate-700 px-4 py-2">
+          <div className="relative rounded-md w-full">
+            <Input
+              type="text"
+              placeholder="Search namespaces..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-slate-700 border-slate-600 text-white pl-10 w-full"
+            />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          </div>
+        </div>
         
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-slate-900 p-4">

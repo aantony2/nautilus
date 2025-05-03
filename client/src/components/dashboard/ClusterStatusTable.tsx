@@ -22,7 +22,8 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
   const [regionFilter, setRegionFilter] = useState("all");
   
   // Get unique regions for filter
-  const regions = [...new Set(clusters.map(cluster => cluster.region))];
+  const regionsSet = new Set(clusters.map(cluster => cluster.region));
+  const regions = Array.from(regionsSet);
   
   const filteredClusters = clusters.filter(cluster => {
     return (providerFilter === "all" || cluster.provider === providerFilter) && 
