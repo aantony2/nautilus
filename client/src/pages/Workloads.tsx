@@ -6,11 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { WorkloadData } from "@shared/schema";
 
 export default function Workloads() {
   const { toast } = useToast();
   
-  const { data: workloads, isLoading, refetch } = useQuery({
+  const { data: workloads, isLoading, refetch } = useQuery<WorkloadData>({
     queryKey: ['/api/workloads'],
   });
   
@@ -60,7 +61,19 @@ export default function Workloads() {
             {isLoading ? (
               <Skeleton className="h-80 w-full" />
             ) : (
-              <WorkloadStatus workloads={workloads} />
+              <WorkloadStatus workloads={workloads ?? {
+                summary: {
+                  deployments: [],
+                  statefulSets: []
+                },
+                distribution: {
+                  daemonSets: {
+                    GKE: 0,
+                    AKS: 0
+                  }
+                },
+                topConsumers: []
+              }} />
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

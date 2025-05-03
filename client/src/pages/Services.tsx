@@ -6,11 +6,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, Globe, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ServiceHealthData } from "@shared/schema";
 
 export default function Services() {
   const { toast } = useToast();
   
-  const { data: services, isLoading, refetch } = useQuery({
+  const { data: services, isLoading, refetch } = useQuery<ServiceHealthData[]>({
     queryKey: ['/api/services'],
   });
   
@@ -53,7 +54,7 @@ export default function Services() {
             {isLoading ? (
               <Skeleton className="h-96 w-full" />
             ) : (
-              <ServiceHealth services={services} />
+              <ServiceHealth services={services ?? []} />
             )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

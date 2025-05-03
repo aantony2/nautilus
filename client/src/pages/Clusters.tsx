@@ -62,7 +62,7 @@ export default function Clusters() {
           {isLoading ? (
             <Skeleton className="h-96 w-full" />
           ) : (
-            <ClusterStatusTable clusters={clusters} />
+            <ClusterStatusTable clusters={clusters ?? []} />
           )}
         </main>
       </div>
