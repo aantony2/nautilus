@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import Sidebar from "@/components/layout/Sidebar";
+// Sidebar is now managed by App.tsx
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TabsContent, Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -36,7 +36,6 @@ export default function ClusterDetails() {
   if (isLoading) {
     return (
       <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
-        <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <header className="bg-slate-800 border-b border-slate-700 shadow-sm p-4">
             <Skeleton className="h-8 w-64" />
@@ -52,7 +51,6 @@ export default function ClusterDetails() {
   if (!cluster) {
     return (
       <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
-        <Sidebar />
         <div className="flex-1 flex flex-col overflow-hidden">
           <header className="bg-slate-800 border-b border-slate-700 shadow-sm p-4">
             <div className="flex items-center">
@@ -89,7 +87,6 @@ export default function ClusterDetails() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
-      <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
