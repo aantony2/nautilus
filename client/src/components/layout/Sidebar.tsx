@@ -38,16 +38,27 @@ interface SidebarProps {
   className?: string;
 }
 
-export default function Sidebar({ className }: SidebarProps) {
-  const [isHome] = useRoute("/");
+// Create a provider component for the sidebar context
+export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   
-  // Check if path includes /namespaces to ensure sidebar is visible on Namespaces page
+  // Make sure sidebar is visible on Namespaces page
   useEffect(() => {
     if (window.location.pathname.includes('/namespaces') && !sidebarVisible) {
       setSidebarVisible(true);
     }
   }, [sidebarVisible]);
+  
+  return (
+    <SidebarContext.Provider value={{ sidebarVisible, setSidebarVisible }}>
+      {children}
+    </SidebarContext.Provider>
+  );
+}
+
+export default function Sidebar({ className }: SidebarProps) {
+  const [isHome] = useRoute("/");
+  const { sidebarVisible, setSidebarVisible } = useSidebarContext();
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
