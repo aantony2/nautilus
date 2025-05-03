@@ -147,6 +147,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cluster dependency routes
+  app.get('/api/dependencies', async (req, res) => {
+    try {
+      const dependencies = await storage.getClusterDependencies();
+      res.json(dependencies);
+    } catch (error) {
+      console.error('Error fetching dependencies:', error);
+      res.status(500).json({ message: 'Failed to fetch dependency data' });
+    }
+  });
+
+  app.get('/api/dependencies/type/:type', async (req, res) => {
+    try {
+      const { type } = req.params;
+      const dependencies = await storage.getClusterDependenciesByType(type);
+      res.json(dependencies);
+    } catch (error) {
+      console.error(`Error fetching dependencies of type ${req.params.type}:`, error);
+      res.status(500).json({ message: 'Failed to fetch dependencies by type' });
+    }
+  });
+
+  app.get('/api/clusters/:clusterId/dependencies', async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const dependencies = await storage.getClusterDependenciesByCluster(clusterId);
+      res.json(dependencies);
+    } catch (error) {
+      console.error(`Error fetching dependencies for cluster ${req.params.clusterId}:`, error);
+      res.status(500).json({ message: 'Failed to fetch dependencies for this cluster' });
+    }
+  });
+
+  app.get('/api/dependencies/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid dependency ID' });
+      }
+
+      const dependency = await storage.getClusterDependencyById(id);
+      
+      if (!dependency) {
+        return res.status(404).json({ message: 'Dependency not found' });
+      }
+      
+      res.json(dependency);
+    } catch (error) {
+      console.error(`Error fetching dependency ${req.params.id}:`, error);
+      res.status(500).json({ message: 'Failed to fetch dependency data' });
+    }
+  });
+
   // Settings routes
   app.get('/api/settings/database', getDatabaseSettings);
   app.post('/api/settings/database', updateDatabaseSettings);
