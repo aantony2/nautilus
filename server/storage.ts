@@ -98,22 +98,22 @@ export class DatabaseStorage implements IStorage {
       return dbClusters.map(cluster => {
         const metadata = cluster.metadata as any || {}; // Type assertion for metadata
         return {
-          id: cluster.cluster_id as string, // Use the column name from the DB
+          id: cluster.clusterId as string,
           name: cluster.name,
           provider: cluster.provider,
           version: cluster.version,
-          versionStatus: cluster.version_status, // Use the column name from the DB
+          versionStatus: cluster.versionStatus,
           region: cluster.region,
           status: cluster.status,
-          nodesTotal: cluster.nodes_total, // Use the column name from the DB
-          nodesReady: cluster.nodes_ready, // Use the column name from the DB
-          podsTotal: cluster.pods_total, // Use the column name from the DB
-          podsRunning: cluster.pods_running, // Use the column name from the DB
+          nodesTotal: cluster.nodesTotal,
+          nodesReady: cluster.nodesReady,
+          podsTotal: cluster.podsTotal,
+          podsRunning: cluster.podsRunning,
           namespaces: cluster.namespaces,
           services: cluster.services,
           deployments: cluster.deployments,
           ingresses: cluster.ingresses,
-          createdAt: cluster.created_at.toISOString(), // Use the column name from the DB
+          createdAt: cluster.createdAt ? new Date(cluster.createdAt).toISOString() : new Date().toISOString(),
           // Handle the metadata JSON field which can contain events and nodes
           events: metadata.events || [],
           nodes: metadata.nodes || []
@@ -129,29 +129,29 @@ export class DatabaseStorage implements IStorage {
 
   async getClusterById(id: string): Promise<ClusterData | undefined> {
     try {
-      const [cluster] = await db.select().from(clusters).where(eq(clusters.cluster_id, id));
+      const [cluster] = await db.select().from(clusters).where(eq(clusters.clusterId, id));
       
       if (!cluster) return undefined;
       
       const metadata = cluster.metadata as any || {}; // Type assertion for metadata
       
       return {
-        id: cluster.cluster_id as string,
+        id: cluster.clusterId as string,
         name: cluster.name,
         provider: cluster.provider,
         version: cluster.version,
-        versionStatus: cluster.version_status,
+        versionStatus: cluster.versionStatus,
         region: cluster.region,
         status: cluster.status,
-        nodesTotal: cluster.nodes_total,
-        nodesReady: cluster.nodes_ready,
-        podsTotal: cluster.pods_total,
-        podsRunning: cluster.pods_running,
+        nodesTotal: cluster.nodesTotal,
+        nodesReady: cluster.nodesReady,
+        podsTotal: cluster.podsTotal,
+        podsRunning: cluster.podsRunning,
         namespaces: cluster.namespaces,
         services: cluster.services,
         deployments: cluster.deployments,
         ingresses: cluster.ingresses,
-        createdAt: cluster.created_at.toISOString(),
+        createdAt: cluster.createdAt ? new Date(cluster.createdAt).toISOString() : new Date().toISOString(),
         events: metadata.events || [],
         nodes: metadata.nodes || []
       };
