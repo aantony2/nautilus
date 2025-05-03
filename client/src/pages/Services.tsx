@@ -46,18 +46,9 @@ export default function Services() {
         {/* Header with integrated search */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white mr-4">Services</h1>
-              <div className="relative rounded-md w-64">
-                <Input
-                  type="text"
-                  placeholder="Search services..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-slate-700 border-slate-600 text-white pl-10"
-                />
-                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              </div>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-semibold text-white">Services</h1>
+              <p className="text-sm text-slate-400">Monitor service health and connectivity</p>
             </div>
           </div>
         </header>
