@@ -22,6 +22,8 @@ import Security from "@/pages/Security";
 import Alerts from "@/pages/Alerts";
 import Namespaces from "@/pages/Namespaces";
 import NamespaceDetails from "@/pages/NamespaceDetails";
+import Dependencies from "@/pages/Dependencies";
+import DependencyDetails from "@/pages/DependencyDetails";
 import Settings from "@/pages/Settings";
 import Login from "@/pages/Login";
 
@@ -92,6 +94,16 @@ function AppLayout() {
           <Route path="/namespaces">
             <RequireAuth>
               <Namespaces />
+            </RequireAuth>
+          </Route>
+          <Route path="/dependencies/:id">
+            <RequireAuth>
+              <DependencyDetails />
+            </RequireAuth>
+          </Route>
+          <Route path="/dependencies">
+            <RequireAuth>
+              <Dependencies />
             </RequireAuth>
           </Route>
           <Route path="/settings">

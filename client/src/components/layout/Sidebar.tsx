@@ -11,7 +11,8 @@ import {
   Bell,
   Layers,
   Menu,
-  X
+  X,
+  PackageCheck
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ export default function MainSidebar({ className }: SidebarProps) {
     { icon: Boxes, label: "Workloads", href: "/workloads" },
     { icon: Globe, label: "Services", href: "/services" },
     { icon: Router, label: "Networking", href: "/networking" },
+    { icon: PackageCheck, label: "Dependencies", href: "/dependencies" },
     { icon: ShieldAlert, label: "Security", href: "/security" },
     { icon: Bell, label: "Alerts", href: "/alerts" },
     { icon: Settings, label: "Settings", href: "/settings" }
