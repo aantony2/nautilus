@@ -76,7 +76,7 @@ export default function Security() {
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-slate-400">Medium</span>
-                    <Badge variant="warning">2</Badge>
+                    <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">2</Badge>
                   </div>
                 </div>
                 <div className="mt-2 text-xs text-slate-400">
@@ -163,7 +163,7 @@ export default function Security() {
                   <div className="bg-slate-700 rounded-md p-3">
                     <div className="flex justify-between items-center">
                       <p className="font-medium">Pod Security Policy Violation</p>
-                      <Badge variant="warning">Medium</Badge>
+                      <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Medium</Badge>
                     </div>
                     <p className="text-sm text-slate-400 mt-1">1 day ago • gke-prod-cluster1</p>
                   </div>
@@ -171,7 +171,7 @@ export default function Security() {
                   <div className="bg-slate-700 rounded-md p-3">
                     <div className="flex justify-between items-center">
                       <p className="font-medium">Secret Rotation Needed</p>
-                      <Badge variant="warning">Medium</Badge>
+                      <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Medium</Badge>
                     </div>
                     <p className="text-sm text-slate-400 mt-1">2 days ago • gke-stage-cluster1</p>
                   </div>

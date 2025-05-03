@@ -9,11 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { EventData } from "@shared/schema";
 
 export default function Alerts() {
   const { toast } = useToast();
   
-  const { data: events, isLoading, refetch } = useQuery({
+  const { data: events, isLoading, refetch } = useQuery<EventData[]>({
     queryKey: ['/api/events'],
   });
   
@@ -129,7 +130,7 @@ export default function Alerts() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {events?.filter(e => e.type === "warning").map((event, i) => (
+                        {(events ?? []).filter(e => e.type === "warning").map((event, i) => (
                           <div key={i} className="bg-slate-700 rounded-md p-3 flex items-start">
                             <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-yellow-100">
                               <Bell className="h-5 w-5 text-yellow-600" />
@@ -137,7 +138,7 @@ export default function Alerts() {
                             <div className="ml-3 flex-1">
                               <div className="flex items-center justify-between">
                                 <p className="text-sm font-medium text-white">{event.title}</p>
-                                <Badge variant="warning">Warning</Badge>
+                                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-white">Warning</Badge>
                               </div>
                               <p className="text-xs text-slate-400 mt-1">{event.description}</p>
                               <div className="flex items-center justify-between mt-2">
@@ -163,7 +164,7 @@ export default function Alerts() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {events?.filter(e => e.type === "info").map((event, i) => (
+                        {(events ?? []).filter(e => e.type === "info").map((event, i) => (
                           <div key={i} className="bg-slate-700 rounded-md p-3 flex items-start">
                             <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-blue-100">
                               <Bell className="h-5 w-5 text-blue-600" />
@@ -201,7 +202,7 @@ export default function Alerts() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {events?.filter(e => e.type === "success").map((event, i) => (
+                    {(events ?? []).filter(e => e.type === "success").map((event, i) => (
                       <div key={i} className="bg-slate-700 rounded-md p-3 flex items-start">
                         <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-full bg-green-100">
                           <CheckCircle2 className="h-5 w-5 text-green-600" />
