@@ -612,183 +612,202 @@ export class DatabaseStorage implements IStorage {
       // Initialize sample namespaces if needed
       if (!skipNamespaces) {
         console.log("Initializing database with sample namespace data");
-        const sampleNamespaces = [
-        // gke-prod-cluster1 namespaces
-        {
-          clusterId: "gke-prod-cluster1",
-          name: "default",
-          status: "Active",
-          age: "423d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "default",
-            "environment": "production"
+        
+        // Get all existing cluster IDs from the database
+        const clusterResults = await db.select({ clusterId: clusters.clusterId }).from(clusters);
+        const existingClusterIds = clusterResults.map(row => row.clusterId);
+        
+        console.log("Existing cluster IDs:", existingClusterIds);
+        
+        // Define all possible namespaces
+        const allSampleNamespaces = [
+          // gke-prod-cluster1 namespaces
+          {
+            clusterId: "gke-prod-cluster1",
+            name: "default",
+            status: "Active",
+            age: "423d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "default",
+              "environment": "production"
+            },
+            annotations: { 
+              "kubernetes.io/description": "Default namespace"
+            },
+            podCount: 12,
+            resourceQuota: false
           },
-          annotations: { 
-            "kubernetes.io/description": "Default namespace"
+          {
+            clusterId: "gke-prod-cluster1",
+            name: "kube-system",
+            status: "Active",
+            age: "423d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "kube-system",
+              "environment": "system" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "System components"
+            },
+            podCount: 18,
+            resourceQuota: false
           },
-          podCount: 12,
-          resourceQuota: false
-        },
-        {
-          clusterId: "gke-prod-cluster1",
-          name: "kube-system",
-          status: "Active",
-          age: "423d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "kube-system",
-            "environment": "system" 
+          {
+            clusterId: "gke-prod-cluster1",
+            name: "monitoring",
+            status: "Active",
+            age: "378d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "monitoring",
+              "environment": "production",
+              "app": "prometheus"
+            },
+            annotations: { 
+              "kubernetes.io/description": "Monitoring components"
+            },
+            podCount: 8,
+            resourceQuota: true
           },
-          annotations: { 
-            "kubernetes.io/description": "System components"
+          {
+            clusterId: "gke-prod-cluster1",
+            name: "backend",
+            status: "Active",
+            age: "182d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "backend",
+              "environment": "production",
+              "app": "backend-api",
+              "team": "platform" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "Backend services"
+            },
+            podCount: 14,
+            resourceQuota: true
           },
-          podCount: 18,
-          resourceQuota: false
-        },
-        {
-          clusterId: "gke-prod-cluster1",
-          name: "monitoring",
-          status: "Active",
-          age: "378d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "monitoring",
-            "environment": "production",
-            "app": "prometheus"
+          // aks-prod-eastus namespaces
+          {
+            clusterId: "aks-prod-eastus",
+            name: "default",
+            status: "Active",
+            age: "321d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "default",
+              "environment": "production" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "Default namespace"
+            },
+            podCount: 5,
+            resourceQuota: false
           },
-          annotations: { 
-            "kubernetes.io/description": "Monitoring components"
+          {
+            clusterId: "aks-prod-eastus",
+            name: "database",
+            status: "Active",
+            age: "250d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "database",
+              "environment": "production",
+              "app": "postgres",
+              "team": "data" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "Database services"
+            },
+            podCount: 6,
+            resourceQuota: true
           },
-          podCount: 8,
-          resourceQuota: true
-        },
-        {
-          clusterId: "gke-prod-cluster1",
-          name: "backend",
-          status: "Active",
-          age: "182d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "backend",
-            "environment": "production",
-            "app": "backend-api",
-            "team": "platform" 
+          // eks-prod-useast1 namespaces - These will only be added if the cluster exists
+          {
+            clusterId: "eks-prod-useast1",
+            name: "default",
+            status: "Active",
+            age: "180d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "default",
+              "environment": "production" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "Default namespace"
+            },
+            podCount: 8,
+            resourceQuota: false
           },
-          annotations: { 
-            "kubernetes.io/description": "Backend services"
+          {
+            clusterId: "eks-prod-useast1",
+            name: "kube-system",
+            status: "Active",
+            age: "180d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "kube-system",
+              "environment": "system" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "System components"
+            },
+            podCount: 15,
+            resourceQuota: false
           },
-          podCount: 14,
-          resourceQuota: true
-        },
-        // aks-prod-eastus namespaces
-        {
-          clusterId: "aks-prod-eastus",
-          name: "default",
-          status: "Active",
-          age: "321d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "default",
-            "environment": "production" 
+          {
+            clusterId: "eks-prod-useast1",
+            name: "microservices",
+            status: "Active",
+            age: "156d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "microservices",
+              "environment": "production",
+              "app": "services",
+              "team": "platform" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "Microservices environment"
+            },
+            podCount: 32,
+            resourceQuota: true
           },
-          annotations: { 
-            "kubernetes.io/description": "Default namespace"
-          },
-          podCount: 5,
-          resourceQuota: false
-        },
-        {
-          clusterId: "aks-prod-eastus",
-          name: "database",
-          status: "Active",
-          age: "250d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "database",
-            "environment": "production",
-            "app": "postgres",
-            "team": "data" 
-          },
-          annotations: { 
-            "kubernetes.io/description": "Database services"
-          },
-          podCount: 6,
-          resourceQuota: true
-        },
-        // eks-prod-useast1 namespaces
-        {
-          clusterId: "eks-prod-useast1",
-          name: "default",
-          status: "Active",
-          age: "180d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "default",
-            "environment": "production" 
-          },
-          annotations: { 
-            "kubernetes.io/description": "Default namespace"
-          },
-          podCount: 8,
-          resourceQuota: false
-        },
-        {
-          clusterId: "eks-prod-useast1",
-          name: "kube-system",
-          status: "Active",
-          age: "180d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "kube-system",
-            "environment": "system" 
-          },
-          annotations: { 
-            "kubernetes.io/description": "System components"
-          },
-          podCount: 15,
-          resourceQuota: false
-        },
-        {
-          clusterId: "eks-prod-useast1",
-          name: "microservices",
-          status: "Active",
-          age: "156d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "microservices",
-            "environment": "production",
-            "app": "services",
-            "team": "platform" 
-          },
-          annotations: { 
-            "kubernetes.io/description": "Microservices environment"
-          },
-          podCount: 32,
-          resourceQuota: true
-        },
-        {
-          clusterId: "eks-prod-useast1",
-          name: "data-analytics",
-          status: "Active",
-          age: "98d",
-          phase: "Active",
-          labels: { 
-            "kubernetes.io/metadata.name": "data-analytics",
-            "environment": "production",
-            "app": "analytics",
-            "team": "data" 
-          },
-          annotations: { 
-            "kubernetes.io/description": "Data analytics services"
-          },
-          podCount: 18,
-          resourceQuota: true
+          {
+            clusterId: "eks-prod-useast1",
+            name: "data-analytics",
+            status: "Active",
+            age: "98d",
+            phase: "Active",
+            labels: { 
+              "kubernetes.io/metadata.name": "data-analytics",
+              "environment": "production",
+              "app": "analytics",
+              "team": "data" 
+            },
+            annotations: { 
+              "kubernetes.io/description": "Data analytics services"
+            },
+            podCount: 18,
+            resourceQuota: true
+          }
+        ];
+        
+        // Filter out namespaces for non-existent clusters
+        const validNamespaces = allSampleNamespaces.filter(ns => 
+          existingClusterIds.includes(ns.clusterId)
+        );
+        
+        console.log(`Inserting ${validNamespaces.length} namespaces for existing clusters`);
+        
+        if (validNamespaces.length > 0) {
+          await db.insert(namespaces).values(validNamespaces);
+          console.log("Sample namespace data inserted successfully");
+        } else {
+          console.log("No valid namespaces to insert (all referenced clusters are missing)");
         }
-      ];
-      
-        await db.insert(namespaces).values(sampleNamespaces);
-        console.log("Sample namespace data inserted successfully");
       }
     } catch (error) {
       console.error("Error inserting sample data:", error);
