@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import MainSidebar, { SidebarProvider, useSidebarContext } from "@/components/layout/Sidebar";
+import { AppSettingsProvider } from "@/hooks/use-app-settings";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import ClusterDetails from "@/pages/ClusterDetails";
@@ -51,9 +52,11 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <SidebarProvider>
-          <AppLayout />
-        </SidebarProvider>
+        <AppSettingsProvider>
+          <SidebarProvider>
+            <AppLayout />
+          </SidebarProvider>
+        </AppSettingsProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

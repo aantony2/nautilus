@@ -16,6 +16,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAppSettings } from "@/hooks/use-app-settings";
 
 // Create a context for sidebar visibility
 type SidebarContextType = {
