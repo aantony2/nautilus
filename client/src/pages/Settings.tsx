@@ -79,6 +79,7 @@ interface CloudProviderCredentials {
   gcpEnabled: boolean;
   gcpProjectId?: string;
   gcpCredentialsJson?: string;
+  gcpScanAllProjects?: boolean;
   
   // Microsoft Azure / AKS
   azureEnabled: boolean;
@@ -86,12 +87,15 @@ interface CloudProviderCredentials {
   azureClientId?: string;
   azureClientSecret?: string;
   azureSubscriptionId?: string;
+  azureScanAllSubscriptions?: boolean;
   
   // Amazon Web Services / EKS
   awsEnabled: boolean;
   awsAccessKeyId?: string;
   awsSecretAccessKey?: string;
   awsRegion?: string;
+  awsScanAllRegions?: boolean;
+  awsScanAllAccounts?: boolean;
   
   // Update schedule
   updateSchedule?: string;
@@ -395,6 +399,7 @@ export default function Settings() {
     gcpEnabled: false,
     gcpProjectId: '',
     gcpCredentialsJson: '',
+    gcpScanAllProjects: true,
     
     // Azure
     azureEnabled: false,
@@ -402,12 +407,15 @@ export default function Settings() {
     azureClientId: '',
     azureClientSecret: '',
     azureSubscriptionId: '',
+    azureScanAllSubscriptions: true,
     
     // AWS
     awsEnabled: false,
     awsAccessKeyId: '',
     awsSecretAccessKey: '',
     awsRegion: 'us-west-2',
+    awsScanAllRegions: true,
+    awsScanAllAccounts: true,
     
     // Update schedule
     updateSchedule: '0 2 * * *'
@@ -421,6 +429,7 @@ export default function Settings() {
         gcpEnabled: cloudCredentials.gcpEnabled || false,
         gcpProjectId: cloudCredentials.gcpProjectId || '',
         gcpCredentialsJson: cloudCredentials.gcpCredentialsJson || '',
+        gcpScanAllProjects: cloudCredentials.gcpScanAllProjects !== false,
         
         // Azure
         azureEnabled: cloudCredentials.azureEnabled || false,
@@ -428,12 +437,15 @@ export default function Settings() {
         azureClientId: cloudCredentials.azureClientId || '',
         azureClientSecret: cloudCredentials.azureClientSecret || '',
         azureSubscriptionId: cloudCredentials.azureSubscriptionId || '',
+        azureScanAllSubscriptions: cloudCredentials.azureScanAllSubscriptions !== false,
         
         // AWS
         awsEnabled: cloudCredentials.awsEnabled || false,
         awsAccessKeyId: cloudCredentials.awsAccessKeyId || '',
         awsSecretAccessKey: cloudCredentials.awsSecretAccessKey || '',
         awsRegion: cloudCredentials.awsRegion || 'us-west-2',
+        awsScanAllRegions: cloudCredentials.awsScanAllRegions !== false,
+        awsScanAllAccounts: cloudCredentials.awsScanAllAccounts !== false,
         
         // Update schedule
         updateSchedule: cloudCredentials.updateSchedule || '0 2 * * *'
@@ -921,6 +933,25 @@ export default function Settings() {
                               Paste the JSON content of your GCP service account key file
                             </p>
                           </div>
+                          
+                          <div className="flex items-center justify-between mt-4">
+                            <div>
+                              <Label className="text-sm font-medium">Scan All Organization Projects</Label>
+                              <p className="text-xs text-slate-400">
+                                Retrieve clusters from all accessible projects in the organization
+                              </p>
+                            </div>
+                            <Switch
+                              name="gcpScanAllProjects"
+                              checked={cloudFormData.gcpScanAllProjects}
+                              onCheckedChange={(checked) => 
+                                setCloudFormData({
+                                  ...cloudFormData,
+                                  gcpScanAllProjects: checked
+                                })
+                              }
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1001,6 +1032,25 @@ export default function Settings() {
                               />
                             </div>
                           </div>
+                          
+                          <div className="flex items-center justify-between mt-4">
+                            <div>
+                              <Label className="text-sm font-medium">Scan All Tenant Subscriptions</Label>
+                              <p className="text-xs text-slate-400">
+                                Retrieve clusters from all accessible subscriptions in the tenant
+                              </p>
+                            </div>
+                            <Switch
+                              name="azureScanAllSubscriptions"
+                              checked={cloudFormData.azureScanAllSubscriptions}
+                              onCheckedChange={(checked) => 
+                                setCloudFormData({
+                                  ...cloudFormData,
+                                  azureScanAllSubscriptions: checked
+                                })
+                              }
+                            />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1077,6 +1127,46 @@ export default function Settings() {
                                 <SelectItem value="ap-southeast-2">Asia Pacific (Sydney)</SelectItem>
                               </SelectContent>
                             </Select>
+                          </div>
+                          
+                          <div className="space-y-6 mt-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="text-sm font-medium">Scan All Regions</Label>
+                                <p className="text-xs text-slate-400">
+                                  Retrieve clusters from all AWS regions, not just the specified one
+                                </p>
+                              </div>
+                              <Switch
+                                name="awsScanAllRegions"
+                                checked={cloudFormData.awsScanAllRegions}
+                                onCheckedChange={(checked) => 
+                                  setCloudFormData({
+                                    ...cloudFormData,
+                                    awsScanAllRegions: checked
+                                  })
+                                }
+                              />
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="text-sm font-medium">Scan All Organization Accounts</Label>
+                                <p className="text-xs text-slate-400">
+                                  Retrieve clusters from all accessible AWS accounts in the organization
+                                </p>
+                              </div>
+                              <Switch
+                                name="awsScanAllAccounts"
+                                checked={cloudFormData.awsScanAllAccounts}
+                                onCheckedChange={(checked) => 
+                                  setCloudFormData({
+                                    ...cloudFormData,
+                                    awsScanAllAccounts: checked
+                                  })
+                                }
+                              />
+                            </div>
                           </div>
                         </div>
                       )}
