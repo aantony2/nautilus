@@ -19,7 +19,6 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
     value: number;
     change: number;
     icon: React.ElementType;
-    color: string;
     details?: DetailItem[];
     progress?: {
       percentage: number;
@@ -34,7 +33,6 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
       value: stats.totalClusters,
       change: stats.clustersChange,
       icon: ServerIcon,
-      color: "text-primary",
       details: [
         { label: "GKE", value: stats.gkeClusters },
         { label: "AKS", value: stats.aksClusters },
@@ -46,7 +44,6 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
       value: stats.totalNodes,
       change: stats.nodesChange,
       icon: HardDriveIcon,
-      color: "text-info",
       progress: {
         percentage: 65,
         label1: "65% Utilized",
@@ -58,7 +55,6 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
       value: stats.totalPods,
       change: stats.podsChange,
       icon: BoxesIcon,
-      color: "text-secondary",
       details: [
         { label: "Running", value: stats.runningPods, color: "text-success" },
         { label: "Pending", value: stats.pendingPods, color: "text-warning" },
@@ -70,7 +66,6 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
       value: stats.totalNamespaces,
       change: stats.namespacesChange,
       icon: Layers,
-      color: "text-accent",
       details: [
         { label: "System", value: stats.systemNamespaces },
         { label: "User", value: stats.userNamespaces }
@@ -85,7 +80,7 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-slate-400">{card.title}</h3>
-              <card.icon className={`h-5 w-5 ${card.color}`} />
+              <card.icon className="h-5 w-5 text-white" />
             </div>
             <div className="mt-2 flex items-baseline">
               <p className="text-2xl font-semibold text-white">{card.value.toLocaleString()}</p>
