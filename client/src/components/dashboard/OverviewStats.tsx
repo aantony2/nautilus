@@ -1,5 +1,5 @@
 import { ArrowUp } from "lucide-react";
-import { ServerIcon, HardDriveIcon, BoxesIcon, FolderIcon } from "lucide-react";
+import { ServerIcon, HardDriveIcon, BoxesIcon, Layers } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { OverviewStatsData } from "@shared/schema";
 
@@ -69,7 +69,7 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
       title: "Namespaces",
       value: stats.totalNamespaces,
       change: stats.namespacesChange,
-      icon: FolderIcon,
+      icon: Layers,
       color: "text-accent",
       details: [
         { label: "System", value: stats.systemNamespaces },
