@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiRequest } from '@/lib/queryClient';
 
 export interface AuthSettings {
@@ -30,26 +30,31 @@ const AuthSettingsContext = createContext<AuthSettingsContextType>({
 export function AuthSettingsProvider({ children }: { children: React.ReactNode }) {
   const [authSettings, setAuthSettings] = useState<AuthSettings>(defaultAuthSettings);
   const [isLoading, setIsLoading] = useState(true);
-  // Determine if this is a production environment
-  // In a real app, this would check for process.env.NODE_ENV or similar
-  const isProduction = window.location.hostname !== 'localhost' && 
-                      !window.location.hostname.includes('replit');
+  const [isProduction, setIsProduction] = useState(false);
 
   useEffect(() => {
-    async function fetchAuthSettings() {
-      try {
-        setIsLoading(true);
-        const data = await apiRequest<AuthSettings>('/api/settings/auth');
-        setAuthSettings(data);
-      } catch (error) {
-        console.error('Failed to fetch auth settings:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
+    // Check environment
+    const isProductionEnv = import.meta.env.MODE === 'production';
+    setIsProduction(isProductionEnv);
+    
+    // Fetch auth settings
     fetchAuthSettings();
   }, []);
+
+  async function fetchAuthSettings() {
+    try {
+      setIsLoading(true);
+      const response = await apiRequest<{ settings: AuthSettings }>('/api/settings/auth');
+      if (response) {
+        setAuthSettings(response.settings || defaultAuthSettings);
+      }
+    } catch (error) {
+      console.error('Error fetching auth settings:', error);
+      setAuthSettings(defaultAuthSettings);
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <AuthSettingsContext.Provider value={{ authSettings, isLoading, isProduction }}>
@@ -59,9 +64,5 @@ export function AuthSettingsProvider({ children }: { children: React.ReactNode }
 }
 
 export function useAuthSettings() {
-  const context = useContext(AuthSettingsContext);
-  if (context === undefined) {
-    throw new Error('useAuthSettings must be used within an AuthSettingsProvider');
-  }
-  return context;
+  return useContext(AuthSettingsContext);
 }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { OktaAuth, toRelativeUrl } from '@okta/okta-auth-js';
 import { Security, SecureRoute } from '@okta/okta-react';
-import { useLocation, useNavigate } from 'wouter';
+import { useLocation } from 'wouter';
 import { useAuthSettings } from '@/hooks/use-auth-settings';
 
 // Create a context for authentication state
@@ -69,20 +69,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle Okta authentication
   const handleAuthenticated = async () => {
-    setIsLoading(true);
-    const tokens = await oktaAuth!.token.parseFromUrl();
-    oktaAuth!.tokenManager.setTokens(tokens);
-    const userInfo = await oktaAuth!.token.getUserInfo();
-    setUser(userInfo);
-    setIsAuthenticated(true);
-    setIsLoading(false);
+    if (!oktaAuth) return;
     
-    // Redirect to the original path or dashboard
-    const originalUri = toRelativeUrl(
-      window.location.href, 
-      window.location.origin
-    );
-    navigate(originalUri || '/');
+    setIsLoading(true);
+    try {
+      const tokens = await oktaAuth.token.parseFromUrl();
+      // Store tokens appropriately based on Okta's response structure
+      if (tokens.tokens) {
+        oktaAuth.tokenManager.setTokens(tokens.tokens);
+      }
+      const userInfo = await oktaAuth.token.getUserInfo();
+      setUser(userInfo);
+      setIsAuthenticated(true);
+      
+      // Redirect to the original path or dashboard
+      const originalUri = toRelativeUrl(
+        window.location.href, 
+        window.location.origin
+      );
+      navigate(originalUri || '/');
+    } catch (error) {
+      console.error('Authentication error:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Only use Okta in production mode with proper configuration

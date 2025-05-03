@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import MainSidebar, { SidebarProvider, useSidebarContext } from "@/components/layout/Sidebar";
 import { AppSettingsProvider } from "@/hooks/use-app-settings";
+import { AuthProvider, RequireAuth } from "@/components/auth/AuthProvider";
+import { AuthSettingsProvider } from "@/hooks/use-auth-settings";
 import DynamicStyles from "./DynamicStyles";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
@@ -18,6 +20,7 @@ import Security from "@/pages/Security";
 import Alerts from "@/pages/Alerts";
 import Namespaces from "@/pages/Namespaces";
 import Settings from "@/pages/Settings";
+import Login from "@/pages/Login";
 
 // Main layout component with routing
 function AppLayout() {
@@ -32,16 +35,57 @@ function AppLayout() {
         sidebarVisible ? "md:ml-64" : "md:ml-16"
       )}>
         <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/clusters/:id" component={ClusterDetails} />
-          <Route path="/clusters" component={Clusters} />
-          <Route path="/workloads" component={Workloads} />
-          <Route path="/services" component={Services} />
-          <Route path="/networking" component={Networking} />
-          <Route path="/security" component={Security} />
-          <Route path="/alerts" component={Alerts} />
-          <Route path="/namespaces" component={Namespaces} />
-          <Route path="/settings" component={Settings} />
+          <Route path="/login" component={Login} />
+          <Route path="/">
+            <RequireAuth>
+              <Dashboard />
+            </RequireAuth>
+          </Route>
+          <Route path="/clusters/:id">
+            <RequireAuth>
+              <ClusterDetails />
+            </RequireAuth>
+          </Route>
+          <Route path="/clusters">
+            <RequireAuth>
+              <Clusters />
+            </RequireAuth>
+          </Route>
+          <Route path="/workloads">
+            <RequireAuth>
+              <Workloads />
+            </RequireAuth>
+          </Route>
+          <Route path="/services">
+            <RequireAuth>
+              <Services />
+            </RequireAuth>
+          </Route>
+          <Route path="/networking">
+            <RequireAuth>
+              <Networking />
+            </RequireAuth>
+          </Route>
+          <Route path="/security">
+            <RequireAuth>
+              <Security />
+            </RequireAuth>
+          </Route>
+          <Route path="/alerts">
+            <RequireAuth>
+              <Alerts />
+            </RequireAuth>
+          </Route>
+          <Route path="/namespaces">
+            <RequireAuth>
+              <Namespaces />
+            </RequireAuth>
+          </Route>
+          <Route path="/settings">
+            <RequireAuth>
+              <Settings />
+            </RequireAuth>
+          </Route>
           <Route component={NotFound} />
         </Switch>
       </div>
@@ -55,9 +99,13 @@ function App() {
       <TooltipProvider>
         <Toaster />
         <AppSettingsProvider>
-          <SidebarProvider>
-            <AppLayout />
-          </SidebarProvider>
+          <AuthSettingsProvider>
+            <AuthProvider>
+              <SidebarProvider>
+                <AppLayout />
+              </SidebarProvider>
+            </AuthProvider>
+          </AuthSettingsProvider>
         </AppSettingsProvider>
       </TooltipProvider>
     </QueryClientProvider>
