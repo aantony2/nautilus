@@ -94,6 +94,8 @@ export default function Dependencies() {
     switch (type) {
       case 'ingress-controller':
         return 'Ingress Controller';
+      case 'backup-service':
+        return 'Backup Service';
       case 'service-mesh':
         return 'Service Mesh';
       case 'monitoring':
@@ -127,6 +129,7 @@ export default function Dependencies() {
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="ingress-controller">Ingress Controllers</SelectItem>
+              <SelectItem value="backup-service">Backup Services</SelectItem>
               <SelectItem value="service-mesh">Service Meshes</SelectItem>
               <SelectItem value="monitoring">Monitoring Tools</SelectItem>
               <SelectItem value="logging">Logging Solutions</SelectItem>

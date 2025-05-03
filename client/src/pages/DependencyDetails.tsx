@@ -68,6 +68,8 @@ export default function DependencyDetails() {
     switch (type) {
       case 'ingress-controller':
         return 'Ingress Controller';
+      case 'backup-service':
+        return 'Backup Service';
       case 'service-mesh':
         return 'Service Mesh';
       case 'monitoring':
