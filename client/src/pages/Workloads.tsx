@@ -8,9 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RefreshCw, Search, ExternalLink, Server, Database } from "lucide-react";
+import { RefreshCw, ExternalLink, Server, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 import { WorkloadData } from "@shared/schema";
 
 export default function Workloads() {
@@ -42,10 +41,28 @@ export default function Workloads() {
       workloads.topConsumers
   } : undefined;
   
+  // We don't need the search functionality but we'll keep the state for compatibility with existing code
+  const handleWorkloadData = (): WorkloadData => {
+    return filteredWorkloads ?? {
+      summary: {
+        deployments: [],
+        statefulSets: []
+      },
+      distribution: {
+        daemonSets: {
+          GKE: 0,
+          AKS: 0,
+          EKS: 0
+        }
+      },
+      topConsumers: []
+    };
+  };
+  
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header with integrated search */}
+        {/* Header */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex flex-col">
@@ -61,20 +78,7 @@ export default function Workloads() {
             {isLoading ? (
               <Skeleton className="h-80 w-full" />
             ) : (
-              <WorkloadStatus workloads={filteredWorkloads ?? {
-                summary: {
-                  deployments: [],
-                  statefulSets: []
-                },
-                distribution: {
-                  daemonSets: {
-                    GKE: 0,
-                    AKS: 0,
-                    EKS: 0
-                  }
-                },
-                topConsumers: []
-              }} />
+              <WorkloadStatus workloads={handleWorkloadData()} />
             )}
             {!isLoading && filteredWorkloads?.topConsumers && (
               <div className="text-xs text-slate-500 mt-2">

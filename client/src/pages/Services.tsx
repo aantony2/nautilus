@@ -1,35 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 // Sidebar is now managed by App.tsx
 import ServiceHealth from "@/components/dashboard/ServiceHealth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, Globe, ExternalLink, Search } from "lucide-react";
+import { RefreshCw, Globe, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceHealthData } from "@shared/schema";
 
 export default function Services() {
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  // We remove the search functionality entirely as it's no longer needed
   
   const { data: services, isLoading, refetch } = useQuery<ServiceHealthData[]>({
     queryKey: ['/api/services'],
   });
   
+  // No filtering needed since we removed the search
   const filteredServices = useMemo(() => {
     if (!services || !Array.isArray(services)) return [];
-    
-    if (!searchQuery) return services;
-    
-    const query = searchQuery.toLowerCase();
-    return services.filter(service => 
-      service.name.toLowerCase().includes(query) ||
-      service.status.toLowerCase().includes(query) ||
-      service.description.toLowerCase().includes(query)
-    );
-  }, [services, searchQuery]);
+    return services;
+  }, [services]);
   
   const refreshData = () => {
     refetch();
@@ -43,7 +35,7 @@ export default function Services() {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header with integrated search */}
+        {/* Header */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex flex-col">
