@@ -197,18 +197,6 @@ export default function Namespaces() {
               <h1 className="text-xl font-semibold text-white">Namespaces</h1>
               <p className="text-sm text-slate-400">View and manage all namespaces</p>
             </div>
-            <div className="flex items-center space-x-3">
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={exportToCSV}
-                disabled={filteredNamespaces.length === 0}
-                className="border-primary text-primary hover:bg-primary/10"
-              >
-                <DownloadIcon className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
-            </div>
           </div>
         </header>
         
