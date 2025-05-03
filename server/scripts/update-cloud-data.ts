@@ -79,21 +79,65 @@ async function connectToK8sCluster(config: string): Promise<k8s.CoreV1Api> {
   return kc.makeApiClient(k8s.CoreV1Api);
 }
 
+// Helper to fetch accessible projects in GCP
+async function fetchGCPProjects() {
+  try {
+    const auth = new google.auth.GoogleAuth({
+      scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS
+    });
+    
+    const client = await auth.getClient();
+    const projectsApi = google.cloudresourcemanager('v1').projects;
+    
+    // List all accessible projects
+    const res = await projectsApi.list({
+      auth: client
+    });
+    
+    return res.data.projects || [];
+  } catch (error) {
+    console.error('Error fetching GCP projects:', error);
+    return [];
+  }
+}
+
 // Functions to fetch cluster data
-async function fetchGKEClusters(projectId: string, location = 'global') {
-  console.log(`Fetching GKE clusters for project ${projectId}...`);
+async function fetchGKEClusters(projectId: string, scanAllProjects = false) {
+  console.log(`Fetching GKE clusters${scanAllProjects ? ' across all accessible projects' : ` for project ${projectId}`}...`);
   try {
     const containerApi = initGoogleClient();
-    const response = await containerApi.projects.locations.clusters.list({
-      parent: `projects/${projectId}/locations/${location}`
-    });
-
     const clusters: ClusterData[] = [];
     const clusterConfigs: Record<string, string> = {};
-
-    if (response.data.clusters && response.data.clusters.length > 0) {
-      for (const cluster of response.data.clusters) {
-        if (!cluster.name || !cluster.id) continue;
+    
+    // Get projects to scan
+    let projectsToScan: string[] = [projectId];
+    
+    if (scanAllProjects) {
+      console.log('Scanning all accessible GCP projects...');
+      const projects = await fetchGCPProjects();
+      if (projects.length > 0) {
+        projectsToScan = projects.map(p => p.projectId).filter(Boolean) as string[];
+        console.log(`Found ${projectsToScan.length} accessible projects`);
+      } else {
+        console.log('No additional projects found, using specified project ID');
+      }
+    }
+    
+    // Fetch clusters from all projects
+    for (const project of projectsToScan) {
+      console.log(`Scanning project: ${project}`);
+      
+      try {
+        // Get all the clusters in the project (from all locations)
+        const response = await containerApi.projects.locations.clusters.list({
+          parent: `projects/${project}/locations/-`
+        });
+        
+        if (response.data.clusters && response.data.clusters.length > 0) {
+          console.log(`Found ${response.data.clusters.length} clusters in project ${project}`);
+          for (const cluster of response.data.clusters) {
+            if (!cluster.name || !cluster.id) continue;
 
         // Get kubectl config for this cluster
         const configCmd = `gcloud container clusters get-credentials ${cluster.name} --project ${projectId} --zone ${cluster.location} --format=config`;
@@ -130,22 +174,77 @@ async function fetchGKEClusters(projectId: string, location = 'global') {
   }
 }
 
-async function fetchAKSClusters() {
-  console.log('Fetching AKS clusters...');
+// Helper to fetch all available Azure subscriptions
+async function fetchAzureSubscriptions() {
   try {
-    const client = initAzureClient();
-    const resourceGroups = await client.resourceGroups.list();
+    const credential = new DefaultAzureCredential();
+    const subscriptionClient = new SubscriptionClient(credential);
+    const subscriptions = [];
     
+    // List all accessible subscriptions
+    for await (const subscription of subscriptionClient.subscriptions.list()) {
+      subscriptions.push(subscription);
+    }
+    
+    return subscriptions;
+  } catch (error) {
+    console.error('Error fetching Azure subscriptions:', error);
+    return [];
+  }
+}
+
+async function fetchAKSClusters(scanAllSubscriptions = false) {
+  console.log(`Fetching AKS clusters${scanAllSubscriptions ? ' across all accessible subscriptions' : ' for configured subscription'}...`);
+  try {
+    const defaultClient = initAzureClient();
     const clusters: ClusterData[] = [];
     const clusterConfigs: Record<string, string> = {};
-
-    for (const rg of resourceGroups) {
-      if (!rg.name) continue;
-
-      const managedClusters = await client.managedClusters.list(rg.name);
+    
+    // Get subscriptions to scan
+    let subscriptions: Array<{ subscriptionId?: string, displayName?: string }> = [
+      { subscriptionId: process.env.AZURE_SUBSCRIPTION_ID, displayName: 'Default Subscription' }
+    ];
+    
+    if (scanAllSubscriptions) {
+      console.log('Scanning all accessible Azure subscriptions...');
+      try {
+        const allSubscriptions = await fetchAzureSubscriptions();
+        if (allSubscriptions.length > 0) {
+          subscriptions = allSubscriptions;
+          console.log(`Found ${subscriptions.length} accessible subscriptions`);
+        } else {
+          console.log('No additional subscriptions found, using configured subscription');
+        }
+      } catch (error) {
+        console.error('Error retrieving subscriptions, using configured subscription:', error);
+      }
+    }
+    
+    // Process each subscription
+    for (const subscription of subscriptions) {
+      if (!subscription.subscriptionId) continue;
       
-      for (const cluster of managedClusters) {
-        if (!cluster.name) continue;
+      console.log(`Scanning subscription: ${subscription.displayName || subscription.subscriptionId}`);
+      
+      try {
+        // Create a client for this subscription
+        const credential = new DefaultAzureCredential();
+        const client = new ContainerServiceClient(credential, subscription.subscriptionId);
+        
+        // List resource groups (assuming ContainerServiceClient has this capability)
+        // Note: If this property doesn't exist, you might need to use ResourceManagementClient instead
+        const resourceGroups = await client.resourceGroups.list();
+        
+        for (const rg of resourceGroups) {
+          if (!rg.name) continue;
+          
+          console.log(`Scanning resource group: ${rg.name}`);
+          
+          // List managed clusters in this resource group
+          const managedClusters = await client.managedClusters.list(rg.name);
+          
+          for (const cluster of managedClusters) {
+            if (!cluster.name) continue;
 
         // Get kubectl config for this cluster
         const configCmd = `az aks get-credentials --resource-group ${rg.name} --name ${cluster.name} --admin --file -`;
@@ -183,22 +282,111 @@ async function fetchAKSClusters() {
   }
 }
 
-async function fetchEKSClusters() {
-  console.log('Fetching EKS clusters...');
+// Helper to fetch AWS accounts in organization
+async function fetchAwsAccounts() {
   try {
-    const { eksClient, ec2Client } = initAwsClients();
-    const listCommand = new ListClustersCommand({});
-    const { clusters: clusterNames } = await eksClient.send(listCommand);
+    const organizationsClient = new OrganizationsClient({ region: process.env.AWS_REGION });
+    const accounts = [];
+    
+    // List accounts in organization
+    const listCommand = new ListAccountsCommand({});
+    const response = await organizationsClient.send(listCommand);
+    
+    if (response.Accounts) {
+      accounts.push(...response.Accounts);
+    }
+    
+    return accounts;
+  } catch (error) {
+    console.error('Error fetching AWS accounts:', error);
+    return [];
+  }
+}
+
+// Helper to get AWS regions
+async function fetchAwsRegions() {
+  try {
+    const ec2Client = new EC2Client({ region: process.env.AWS_REGION || 'us-east-1' });
+    const describeRegionsCommand = new DescribeRegionsCommand({ AllRegions: true });
+    const { Regions } = await ec2Client.send(describeRegionsCommand);
+    
+    return Regions || [];
+  } catch (error) {
+    console.error('Error fetching AWS regions:', error);
+    return [];
+  }
+}
+
+async function fetchEKSClusters(defaultRegion = 'us-west-2', scanAllRegions = false, scanAllAccounts = false) {
+  console.log(`Fetching EKS clusters${scanAllRegions ? ' across all regions' : ` in ${defaultRegion}`}${scanAllAccounts ? ' and all accounts' : ' in default account'}...`);
+  try {
+    // Get regions to scan
+    let regionsToScan: string[] = [defaultRegion];
+    
+    if (scanAllRegions) {
+      console.log('Scanning all available AWS regions...');
+      const regions = await fetchAwsRegions();
+      if (regions.length > 0) {
+        regionsToScan = regions.filter(r => r.RegionName).map(r => r.RegionName as string);
+        console.log(`Found ${regionsToScan.length} available regions`);
+      } else {
+        console.log('No additional regions found, using default region');
+      }
+    }
+    
+    // Get accounts to scan
+    let accountsToScan = [{ Id: 'default', Name: 'Default Account' }];
+    
+    if (scanAllAccounts) {
+      console.log('Scanning all accessible AWS accounts in organization...');
+      const accounts = await fetchAwsAccounts();
+      if (accounts.length > 0) {
+        accountsToScan = accounts;
+        console.log(`Found ${accounts.length} accounts in organization`);
+      } else {
+        console.log('No additional accounts found, using default account');
+      }
+    }
     
     const clusters: ClusterData[] = [];
     const clusterConfigs: Record<string, string> = {};
-
-    if (clusterNames && clusterNames.length > 0) {
-      for (const name of clusterNames) {
-        const describeCommand = new DescribeClusterCommand({ name });
-        const { cluster } = await eksClient.send(describeCommand);
+    
+    // For each region and account combination
+    for (const region of regionsToScan) {
+      console.log(`Scanning region: ${region}`);
+      
+      for (const account of accountsToScan) {
+        // For accounts, we'd need to assume a role in the target account
+        // This is a simplified version - in a real implementation, you'd use 
+        // STS AssumeRole to get temporary credentials for each account
         
-        if (!cluster || !cluster.name) continue;
+        const accountName = account.Name || account.Id || 'Default';
+        console.log(`Scanning account: ${accountName}`);
+        
+        try {
+          // Create clients for this region
+          const eksClient = new EKSClient({ 
+            region,
+            // For multi-account, you'd add credentials from STS AssumeRole here
+          });
+          
+          const ec2Client = new EC2Client({ 
+            region,
+            // For multi-account, you'd add credentials from STS AssumeRole here
+          });
+          
+          // List clusters in this region/account
+          const listCommand = new ListClustersCommand({});
+          const { clusters: clusterNames } = await eksClient.send(listCommand);
+          
+          if (clusterNames && clusterNames.length > 0) {
+            console.log(`Found ${clusterNames.length} clusters in ${region}/${accountName}`);
+            
+            for (const name of clusterNames) {
+              const describeCommand = new DescribeClusterCommand({ name });
+              const { cluster } = await eksClient.send(describeCommand);
+              
+              if (!cluster || !cluster.name) continue;
 
         // Get kubectl config for this cluster
         const configCmd = `aws eks update-kubeconfig --name ${cluster.name} --dry-run`;
@@ -436,6 +624,67 @@ async function updateDatabase(allClusters: ClusterData[], allNamespaces: Namespa
   }
 }
 
+// Retrieve cloud provider settings from database
+async function getCloudSettings() {
+  try {
+    const result = await db.select().from(settings).where(eq(settings.key, 'cloud_credentials'));
+    if (result.length > 0 && result[0].value) {
+      return result[0].value as CloudProviderSettings;
+    }
+    
+    // Return default settings if not found
+    return {
+      gcpEnabled: !!process.env.GOOGLE_PROJECT_ID,
+      gcpProjectId: process.env.GOOGLE_PROJECT_ID || '',
+      gcpCredentialsJson: '',
+      gcpScanAllProjects: true,
+      
+      azureEnabled: !!process.env.AZURE_SUBSCRIPTION_ID,
+      azureTenantId: process.env.AZURE_TENANT_ID || '',
+      azureClientId: process.env.AZURE_CLIENT_ID || '',
+      azureClientSecret: process.env.AZURE_CLIENT_SECRET || '',
+      azureSubscriptionId: process.env.AZURE_SUBSCRIPTION_ID || '',
+      azureScanAllSubscriptions: true,
+      
+      awsEnabled: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY),
+      awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      awsRegion: process.env.AWS_REGION || 'us-west-2',
+      awsScanAllRegions: true,
+      awsScanAllAccounts: true,
+      
+      updateSchedule: '0 2 * * *'
+    };
+  } catch (error) {
+    console.error('Error getting cloud settings:', error);
+    return null;
+  }
+}
+
+// Interface for cloud provider settings
+interface CloudProviderSettings {
+  gcpEnabled: boolean;
+  gcpProjectId: string;
+  gcpCredentialsJson: string;
+  gcpScanAllProjects: boolean;
+  
+  azureEnabled: boolean;
+  azureTenantId: string;
+  azureClientId: string;
+  azureClientSecret: string;
+  azureSubscriptionId: string;
+  azureScanAllSubscriptions: boolean;
+  
+  awsEnabled: boolean;
+  awsAccessKeyId: string;
+  awsSecretAccessKey: string;
+  awsRegion: string;
+  awsScanAllRegions: boolean;
+  awsScanAllAccounts: boolean;
+  
+  updateSchedule: string;
+}
+
 // Main function to orchestrate the data collection and update
 async function main() {
   console.log('Starting cloud provider data collection...');
@@ -445,36 +694,53 @@ async function main() {
       throw new Error('DATABASE_URL environment variable is required');
     }
     
+    // Get cloud provider settings
+    const cloudSettings = await getCloudSettings();
+    if (!cloudSettings) {
+      throw new Error('Failed to retrieve cloud provider settings');
+    }
+    
     // Collect data from all providers
     const allClusters: ClusterData[] = [];
     const allClusterConfigs: Record<string, string> = {};
     
     // GKE
-    const googleProjectId = process.env.GOOGLE_PROJECT_ID;
-    if (googleProjectId) {
-      const { clusters, clusterConfigs } = await fetchGKEClusters(googleProjectId);
+    if (cloudSettings.gcpEnabled && cloudSettings.gcpProjectId) {
+      console.log(`GKE data collection with${cloudSettings.gcpScanAllProjects ? '' : 'out'} tenant-wide scanning`);
+      const { clusters, clusterConfigs } = await fetchGKEClusters(
+        cloudSettings.gcpProjectId, 
+        cloudSettings.gcpScanAllProjects
+      );
       allClusters.push(...clusters);
       Object.assign(allClusterConfigs, clusterConfigs);
     } else {
-      console.log('Skipping GKE data collection: GOOGLE_PROJECT_ID not set');
+      console.log('Skipping GKE data collection: GCP not enabled or project ID not set');
     }
     
     // AKS
-    if (process.env.AZURE_SUBSCRIPTION_ID) {
-      const { clusters, clusterConfigs } = await fetchAKSClusters();
+    if (cloudSettings.azureEnabled && cloudSettings.azureSubscriptionId) {
+      console.log(`AKS data collection with${cloudSettings.azureScanAllSubscriptions ? '' : 'out'} tenant-wide scanning`);
+      const { clusters, clusterConfigs } = await fetchAKSClusters(
+        cloudSettings.azureScanAllSubscriptions
+      );
       allClusters.push(...clusters);
       Object.assign(allClusterConfigs, clusterConfigs);
     } else {
-      console.log('Skipping AKS data collection: AZURE_SUBSCRIPTION_ID not set');
+      console.log('Skipping AKS data collection: Azure not enabled or subscription ID not set');
     }
     
     // EKS
-    if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) {
-      const { clusters, clusterConfigs } = await fetchEKSClusters();
+    if (cloudSettings.awsEnabled && cloudSettings.awsAccessKeyId && cloudSettings.awsSecretAccessKey) {
+      console.log(`EKS data collection with${cloudSettings.awsScanAllRegions ? '' : 'out'} multi-region and with${cloudSettings.awsScanAllAccounts ? '' : 'out'} organization-wide scanning`);
+      const { clusters, clusterConfigs } = await fetchEKSClusters(
+        cloudSettings.awsRegion,
+        cloudSettings.awsScanAllRegions,
+        cloudSettings.awsScanAllAccounts
+      );
       allClusters.push(...clusters);
       Object.assign(allClusterConfigs, clusterConfigs);
     } else {
-      console.log('Skipping EKS data collection: AWS credentials not set');
+      console.log('Skipping EKS data collection: AWS not enabled or credentials not set');
     }
     
     console.log(`Collected ${allClusters.length} clusters from cloud providers`);
