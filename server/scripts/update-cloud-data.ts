@@ -505,7 +505,7 @@ async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: st
       const { body: deployments } = await appsV1Api.listDeploymentForAllNamespaces();
       const { body: daemonsets } = await appsV1Api.listDaemonSetForAllNamespaces();
       
-      // Check deployments for Nginx Ingress Controller
+      // Check deployments for Nginx Ingress Controller and Velero
       for (const deployment of deployments.items) {
         const labels = deployment.metadata?.labels || {};
         const name = deployment.metadata?.name || '';
@@ -517,6 +517,12 @@ async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: st
           name.includes('ingress-nginx') ||
           (labels['app.kubernetes.io/name'] === 'ingress-nginx') ||
           (labels['app'] === 'nginx-ingress');
+        
+        // Check for Velero backup service
+        const isVelero = 
+          name.includes('velero') ||
+          (labels['app.kubernetes.io/name'] === 'velero') ||
+          (labels['app'] === 'velero');
         
         if (isNginxIngress) {
           // Found Nginx Ingress Controller
@@ -553,6 +559,42 @@ async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: st
             }
           });
         }
+        
+        if (isVelero) {
+          // Found Velero backup service
+          let version = 'unknown';
+          
+          // Try to get version from image tag
+          if (deployment.spec?.template?.spec?.containers && deployment.spec.template.spec.containers.length > 0) {
+            const image = deployment.spec.template.spec.containers[0].image || '';
+            const versionMatch = image.match(/:([^:]+)$/);
+            if (versionMatch && versionMatch[1]) {
+              version = versionMatch[1];
+            }
+          }
+          
+          // Get replica count and ready replicas
+          const replicas = deployment.status?.replicas || 0;
+          const readyReplicas = deployment.status?.readyReplicas || 0;
+          const status = readyReplicas >= replicas ? 'Active' : 'Warning';
+          
+          dependencies.push({
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            type: 'backup-service',
+            name: `velero-${name}`,
+            namespace,
+            version,
+            status,
+            detectedAt: new Date().toISOString(),
+            metadata: {
+              kind: 'Deployment',
+              replicas,
+              readyReplicas,
+              labels
+            }
+          });
+        }
       }
       
       // Check daemonsets for Nginx Ingress Controller
@@ -567,6 +609,12 @@ async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: st
           name.includes('ingress-nginx') ||
           (labels['app.kubernetes.io/name'] === 'ingress-nginx') ||
           (labels['app'] === 'nginx-ingress');
+        
+        // Check for Velero backup service
+        const isVelero = 
+          name.includes('velero') ||
+          (labels['app.kubernetes.io/name'] === 'velero') ||
+          (labels['app'] === 'velero');
         
         if (isNginxIngress) {
           // Found Nginx Ingress Controller
@@ -591,6 +639,42 @@ async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: st
             clusterId: clusterData.id,
             type: 'ingress-controller',
             name: `nginx-ingress-${name}`,
+            namespace,
+            version,
+            status,
+            detectedAt: new Date().toISOString(),
+            metadata: {
+              kind: 'DaemonSet',
+              desiredNodes,
+              readyNodes,
+              labels
+            }
+          });
+        }
+        
+        if (isVelero) {
+          // Found Velero backup service
+          let version = 'unknown';
+          
+          // Try to get version from image tag
+          if (daemonset.spec?.template?.spec?.containers && daemonset.spec.template.spec.containers.length > 0) {
+            const image = daemonset.spec.template.spec.containers[0].image || '';
+            const versionMatch = image.match(/:([^:]+)$/);
+            if (versionMatch && versionMatch[1]) {
+              version = versionMatch[1];
+            }
+          }
+          
+          // Get number of nodes and ready count
+          const desiredNodes = daemonset.status?.desiredNumberScheduled || 0;
+          const readyNodes = daemonset.status?.numberReady || 0;
+          const status = readyNodes >= desiredNodes ? 'Active' : 'Warning';
+          
+          dependencies.push({
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            type: 'backup-service',
+            name: `velero-${name}`,
             namespace,
             version,
             status,

@@ -2,11 +2,63 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
-import { db } from "./db";
+import { db, pool } from "./db";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { initializeSettings } from "./settings";
 import { initializeScheduler } from "./scripts/scheduler";
 import { createSettingsTable } from "./scripts/migrate-settings";
+
+// Function to check if a table exists
+async function checkIfTableExists(tableName: string): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_name = $1
+      )
+    `, [tableName]);
+    return result.rows[0].exists;
+  } finally {
+    client.release();
+  }
+}
+
+// Function to create the cluster_dependencies table
+async function createClusterDependenciesTable(): Promise<void> {
+  log('Checking if cluster_dependencies table exists...');
+  const tableExists = await checkIfTableExists('cluster_dependencies');
+  
+  if (tableExists) {
+    log('cluster_dependencies table already exists.');
+    return;
+  }
+  
+  log('Creating cluster_dependencies table...');
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS cluster_dependencies (
+        id SERIAL PRIMARY KEY,
+        cluster_id TEXT NOT NULL REFERENCES clusters(cluster_id),
+        type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        namespace TEXT NOT NULL,
+        version TEXT,
+        status TEXT NOT NULL,
+        detected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        metadata JSONB
+      )
+    `);
+    log('Successfully created cluster_dependencies table.');
+  } catch (error) {
+    log(`Error creating cluster_dependencies table: ${error}`);
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 const app = express();
 app.use(express.json());
@@ -57,6 +109,10 @@ app.use((req, res, next) => {
     // Create settings table if it doesn't exist
     await createSettingsTable();
     log("Settings table migration complete");
+
+    // Create dependencies table if it doesn't exist
+    await createClusterDependenciesTable();
+    log("Dependencies table migration complete");
     
     // Initialize application settings from database
     await initializeSettings();
