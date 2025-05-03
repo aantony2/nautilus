@@ -138,9 +138,9 @@ export default function Namespaces() {
     exportObjectsToCsv(
       filteredNamespaces,
       headers,
-      keys as string[],
+      keys as unknown as string[],
       "kubernetes-namespaces",
-      transform
+      transform as (key: string, value: any) => string | number | boolean
     );
   }, [filteredNamespaces]);
 
