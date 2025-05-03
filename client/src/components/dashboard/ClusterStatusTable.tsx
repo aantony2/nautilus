@@ -10,8 +10,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { ServerIcon, Search } from "lucide-react";
+import { ServerIcon, Search, FileDown } from "lucide-react";
 import { ClusterData } from "@shared/schema";
+import { exportObjectsToCsv } from "@/lib/csvExport";
 
 interface ClusterStatusTableProps {
   clusters: ClusterData[];
@@ -22,6 +23,18 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
   const [providerFilter, setProviderFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const handleExportCsv = () => {
+    const headers = ["Name", "ID", "Provider", "Version", "Status", "Region", "Nodes Ready", "Nodes Total", "Pods Running", "Pods Total", "Created At"];
+    const keys = ["name", "id", "provider", "version", "status", "region", "nodesReady", "nodesTotal", "podsRunning", "podsTotal", "createdAt"];
+    
+    exportObjectsToCsv(
+      filteredClusters,
+      headers,
+      keys as any,
+      "clusters-export",
+    );
+  };
   
   // Get unique regions for filter
   const regionsSet = new Set(clusters.map(cluster => cluster.region));
@@ -96,6 +109,16 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
               ))}
             </SelectContent>
           </Select>
+          
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleExportCsv}
+            title="Export to CSV"
+            className="ml-2 text-slate-400 hover:text-white"
+          >
+            <FileDown className="h-5 w-5" />
+          </Button>
         </div>
         <div className="text-xs text-slate-400">
           Showing {filteredClusters.length} of {clusters.length} clusters
