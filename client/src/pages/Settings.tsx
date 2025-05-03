@@ -253,14 +253,141 @@ export default function Settings() {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto bg-slate-900 p-4">
-          <Tabs defaultValue="database">
+          <Tabs defaultValue="general">
             <TabsList className="mb-6">
-              <TabsTrigger value="database">Database</TabsTrigger>
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="database">
+            <TabsContent value="general">
+              <Card className="bg-slate-800 border-slate-700 shadow-md">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <Text className="h-5 w-5 mr-2 text-primary" />
+                        Application Branding
+                      </CardTitle>
+                      <CardDescription>
+                        Customize your application name and appearance
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="productName">Product Name</Label>
+                      <Input
+                        id="productName"
+                        name="productName"
+                        placeholder="Nautilus"
+                        value={appFormData.productName}
+                        onChange={handleAppInputChange}
+                        className="bg-slate-700 border-slate-600 text-slate-100"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        This name will appear in the sidebar and throughout the application.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="logoSvgCode">Logo SVG Code</Label>
+                      <Textarea
+                        id="logoSvgCode"
+                        name="logoSvgCode"
+                        placeholder='<path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>'
+                        value={appFormData.logoSvgCode}
+                        onChange={handleAppInputChange}
+                        className="bg-slate-700 border-slate-600 text-slate-100 min-h-[120px]"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Enter SVG path data only, not the full SVG tag. This will be used for the application logo.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <Label>Logo Preview</Label>
+                      <div className="bg-slate-900 p-4 rounded-md flex justify-center">
+                        <div className="w-16 h-16 bg-slate-800 rounded-md flex items-center justify-center">
+                          <svg 
+                            className="h-12 w-12" 
+                            viewBox="0 0 24 24" 
+                            fill="currentColor"
+                            style={{ color: appFormData.primaryColor || "#0ea5e9" }}
+                          >
+                            {appFormData.logoSvgCode ? (
+                              <path d={appFormData.logoSvgCode} />
+                            ) : (
+                              <path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>
+                            )}
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="primaryColor">Primary Color</Label>
+                        <div className="flex items-center space-x-2">
+                          <div 
+                            className="w-8 h-8 rounded-md border border-slate-600"
+                            style={{ backgroundColor: appFormData.primaryColor || '#0ea5e9' }}
+                          />
+                          <Input
+                            id="primaryColor"
+                            name="primaryColor"
+                            placeholder="#0ea5e9"
+                            value={appFormData.primaryColor}
+                            onChange={handleAppInputChange}
+                            className="bg-slate-700 border-slate-600 text-slate-100"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="accentColor">Accent Color</Label>
+                        <div className="flex items-center space-x-2">
+                          <div 
+                            className="w-8 h-8 rounded-md border border-slate-600"
+                            style={{ backgroundColor: appFormData.accentColor || '#6366f1' }}
+                          />
+                          <Input
+                            id="accentColor"
+                            name="accentColor"
+                            placeholder="#6366f1"
+                            value={appFormData.accentColor}
+                            onChange={handleAppInputChange}
+                            className="bg-slate-700 border-slate-600 text-slate-100"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4">
+                      <Button
+                        onClick={saveAppSettings}
+                        disabled={saveAppSettingsMutation.isPending}
+                      >
+                        {saveAppSettingsMutation.isPending ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Save Branding
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="advanced">
               <Card className="bg-slate-800 border-slate-700 shadow-md">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -403,150 +530,6 @@ export default function Settings() {
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="general">
-              <Card className="bg-slate-800 border-slate-700 shadow-md">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center">
-                        <Text className="h-5 w-5 mr-2 text-primary" />
-                        Application Branding
-                      </CardTitle>
-                      <CardDescription>
-                        Customize your application name and appearance
-                      </CardDescription>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="productName">Product Name</Label>
-                      <Input
-                        id="productName"
-                        name="productName"
-                        placeholder="Nautilus"
-                        value={appFormData.productName}
-                        onChange={handleAppInputChange}
-                        className="bg-slate-700 border-slate-600 text-slate-100"
-                      />
-                      <p className="text-xs text-slate-400 mt-1">
-                        This name will appear in the sidebar and throughout the application.
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="logoSvgCode">Logo SVG Code</Label>
-                      <Textarea
-                        id="logoSvgCode"
-                        name="logoSvgCode"
-                        placeholder='<path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>'
-                        value={appFormData.logoSvgCode}
-                        onChange={handleAppInputChange}
-                        className="bg-slate-700 border-slate-600 text-slate-100 min-h-[120px]"
-                      />
-                      <p className="text-xs text-slate-400 mt-1">
-                        Enter SVG path data only, not the full SVG tag. This will be used for the application logo.
-                      </p>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      <Label>Logo Preview</Label>
-                      <div className="bg-slate-900 p-4 rounded-md flex justify-center">
-                        <div className="w-16 h-16 bg-slate-800 rounded-md flex items-center justify-center">
-                          <svg 
-                            className="h-12 w-12" 
-                            viewBox="0 0 24 24" 
-                            fill="currentColor"
-                            style={{ color: appFormData.primaryColor || "#0ea5e9" }}
-                          >
-                            {appFormData.logoSvgCode ? (
-                              <path d={appFormData.logoSvgCode} />
-                            ) : (
-                              <path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>
-                            )}
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="primaryColor">Primary Color</Label>
-                        <div className="flex items-center space-x-2">
-                          <div 
-                            className="w-8 h-8 rounded-md border border-slate-600"
-                            style={{ backgroundColor: appFormData.primaryColor || '#0ea5e9' }}
-                          />
-                          <Input
-                            id="primaryColor"
-                            name="primaryColor"
-                            placeholder="#0ea5e9"
-                            value={appFormData.primaryColor}
-                            onChange={handleAppInputChange}
-                            className="bg-slate-700 border-slate-600 text-slate-100"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="accentColor">Accent Color</Label>
-                        <div className="flex items-center space-x-2">
-                          <div 
-                            className="w-8 h-8 rounded-md border border-slate-600"
-                            style={{ backgroundColor: appFormData.accentColor || '#6366f1' }}
-                          />
-                          <Input
-                            id="accentColor"
-                            name="accentColor"
-                            placeholder="#6366f1"
-                            value={appFormData.accentColor}
-                            onChange={handleAppInputChange}
-                            className="bg-slate-700 border-slate-600 text-slate-100"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end pt-4">
-                      <Button
-                        onClick={saveAppSettings}
-                        disabled={saveAppSettingsMutation.isPending}
-                      >
-                        {saveAppSettingsMutation.isPending ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                            Saving...
-                          </>
-                        ) : (
-                          <>
-                            <Save className="h-4 w-4 mr-2" />
-                            Save Branding
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="advanced">
-              <Card className="bg-slate-800 border-slate-700 shadow-md">
-                <CardHeader>
-                  <CardTitle>Advanced Settings</CardTitle>
-                  <CardDescription>
-                    Advanced configuration options
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-slate-400 text-center py-8">
-                    Advanced settings will be implemented in future updates
-                  </p>
                 </CardContent>
               </Card>
             </TabsContent>
