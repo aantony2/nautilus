@@ -6,6 +6,7 @@ import { db } from "./db";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
 import { initializeSettings } from "./settings";
 import { initializeScheduler } from "./scripts/scheduler";
+import { createSettingsTable } from "./scripts/migrate-settings";
 
 const app = express();
 app.use(express.json());
@@ -52,6 +53,10 @@ app.use((req, res, next) => {
     }
     
     log("Database initialization complete");
+    
+    // Create settings table if it doesn't exist
+    await createSettingsTable();
+    log("Settings table migration complete");
     
     // Initialize application settings from database
     await initializeSettings();

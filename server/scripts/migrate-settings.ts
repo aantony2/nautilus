@@ -59,13 +59,22 @@ export async function checkIfTableExists(tableName: string): Promise<boolean> {
   }
 }
 
-// Run the migration
-createSettingsTable()
-  .then(() => {
-    log('Settings table migration completed');
-    process.exit(0);
-  })
-  .catch((error) => {
-    log(`Settings table migration failed: ${error}`);
-    process.exit(1);
-  });
+// For ES modules, we need a different way to check if the file is executed directly
+// This code will only run when the script is executed directly from command line
+// and not when imported as a module
+import { fileURLToPath } from 'url';
+
+// Detect if this file is being run directly
+const isMainModule = process.argv[1] === fileURLToPath(import.meta.url);
+
+if (isMainModule) {
+  createSettingsTable()
+    .then(() => {
+      log('Settings table migration completed');
+      process.exit(0);
+    })
+    .catch((error) => {
+      log(`Settings table migration failed: ${error}`);
+      process.exit(1);
+    });
+}
