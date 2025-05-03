@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   Select, 
   SelectContent, 
@@ -9,7 +10,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { ServerIcon } from "lucide-react";
+import { ServerIcon, Search } from "lucide-react";
 import { ClusterData } from "@shared/schema";
 
 interface ClusterStatusTableProps {
@@ -20,14 +21,21 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
   const [, setLocation] = useLocation();
   const [providerFilter, setProviderFilter] = useState("all");
   const [regionFilter, setRegionFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   
   // Get unique regions for filter
   const regionsSet = new Set(clusters.map(cluster => cluster.region));
   const regions = Array.from(regionsSet);
   
   const filteredClusters = clusters.filter(cluster => {
+    const matchesSearch = searchQuery === "" || 
+                         cluster.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         cluster.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         cluster.region.toLowerCase().includes(searchQuery.toLowerCase());
+    
     return (providerFilter === "all" || cluster.provider === providerFilter) && 
-           (regionFilter === "all" || cluster.region === regionFilter);
+           (regionFilter === "all" || cluster.region === regionFilter) &&
+           matchesSearch;
   });
 
   const getStatusBadge = (status: string) => {
@@ -55,6 +63,17 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
+          <div className="relative w-64 mr-2">
+            <Input
+              type="text"
+              placeholder="Search clusters..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-slate-700 border-slate-600 text-white pl-10"
+            />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          </div>
+          
           <Select value={providerFilter} onValueChange={setProviderFilter}>
             <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-300 w-[180px]">
               <SelectValue placeholder="All Providers" />
