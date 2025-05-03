@@ -264,6 +264,16 @@ export default function Namespaces() {
                           ))}
                         </SelectContent>
                       </Select>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={exportToCSV}
+                        title="Export to CSV"
+                        className="ml-2 text-slate-400 hover:text-white"
+                      >
+                        <FileDown className="h-5 w-5" />
+                      </Button>
                     </div>
                   </div>
                 </div>
