@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { db, pool } from "./db";
+import { settings } from "@shared/schema";
+import { eq } from "drizzle-orm";
 
 // Schema for cloud provider credentials
 export const cloudProviderCredentialsSchema = z.object({
@@ -64,26 +66,25 @@ export const authSettingsSchema = z.object({
 
 export type AuthSettings = z.infer<typeof authSettingsSchema>;
 
-// Store current settings (for demo purposes)
-let currentDbSettings: DatabaseSettings = {
+// Default setting values
+const DEFAULT_DB_SETTINGS: DatabaseSettings = {
   host: process.env.PGHOST || "",
   port: process.env.PGPORT || "5432",
   user: process.env.PGUSER || "",
   database: process.env.PGDATABASE || "",
+  password: "",
   ssl: true,
   connectionTimeout: "5000"
 };
 
-// Default app settings with Nautilus branding
-let currentAppSettings: AppSettings = {
+const DEFAULT_APP_SETTINGS: AppSettings = {
   productName: "Nautilus",
   logoSvgCode: `<path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>`,
   primaryColor: "#0ea5e9",
   accentColor: "#6366f1"
 };
 
-// Default auth settings - disabled in development
-let currentAuthSettings: AuthSettings = {
+const DEFAULT_AUTH_SETTINGS: AuthSettings = {
   enabled: false,
   provider: "none",
   oktaIssuer: process.env.OKTA_ISSUER || "",
@@ -92,8 +93,7 @@ let currentAuthSettings: AuthSettings = {
   postLogoutRedirectUri: `${process.env.NODE_ENV === 'production' ? 'https://' : 'http://localhost:5000'}`
 };
 
-// Default cloud provider credentials
-let currentCloudCredentials: CloudProviderCredentials = {
+const DEFAULT_CLOUD_CREDENTIALS: CloudProviderCredentials = {
   // Google Cloud Platform / GKE
   gcpEnabled: process.env.GOOGLE_PROJECT_ID ? true : false,
   gcpProjectId: process.env.GOOGLE_PROJECT_ID || "",
@@ -116,6 +116,105 @@ let currentCloudCredentials: CloudProviderCredentials = {
   updateSchedule: "0 2 * * *" // Every day at 2 AM
 };
 
+// Cached in-memory settings
+let currentDbSettings: DatabaseSettings = { ...DEFAULT_DB_SETTINGS };
+let currentAppSettings: AppSettings = { ...DEFAULT_APP_SETTINGS };
+let currentAuthSettings: AuthSettings = { ...DEFAULT_AUTH_SETTINGS };
+let currentCloudCredentials: CloudProviderCredentials = { ...DEFAULT_CLOUD_CREDENTIALS };
+
+// Setting keys for the database
+const SETTING_KEYS = {
+  DB_SETTINGS: "db_settings",
+  APP_SETTINGS: "app_settings",
+  AUTH_SETTINGS: "auth_settings",
+  CLOUD_CREDENTIALS: "cloud_credentials"
+};
+
+// Generic function to load settings from database
+async function loadSettingsFromDB<T>(key: string, defaultValue: T): Promise<T> {
+  try {
+    const result = await db.select().from(settings).where(eq(settings.key, key));
+    
+    if (result.length > 0 && result[0].value) {
+      return result[0].value as T;
+    }
+    
+    // If setting doesn't exist, save the default
+    await saveSettingsToDB(key, defaultValue);
+    return defaultValue;
+  } catch (error) {
+    console.error(`Error loading ${key} settings:`, error);
+    return defaultValue;
+  }
+}
+
+// Generic function to save settings to database
+async function saveSettingsToDB<T>(key: string, value: T): Promise<void> {
+  try {
+    // Check if setting exists
+    const existing = await db.select().from(settings).where(eq(settings.key, key));
+    
+    if (existing.length > 0) {
+      // Update existing setting
+      await db.update(settings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(settings.key, key));
+    } else {
+      // Insert new setting
+      await db.insert(settings).values({
+        key,
+        value,
+        updatedAt: new Date()
+      });
+    }
+  } catch (error) {
+    console.error(`Error saving ${key} settings:`, error);
+  }
+}
+
+// Initialize all settings from database
+export async function initializeSettings(): Promise<void> {
+  try {
+    // Load all settings from database
+    currentDbSettings = await loadSettingsFromDB(SETTING_KEYS.DB_SETTINGS, DEFAULT_DB_SETTINGS);
+    currentAppSettings = await loadSettingsFromDB(SETTING_KEYS.APP_SETTINGS, DEFAULT_APP_SETTINGS);
+    currentAuthSettings = await loadSettingsFromDB(SETTING_KEYS.AUTH_SETTINGS, DEFAULT_AUTH_SETTINGS);
+    currentCloudCredentials = await loadSettingsFromDB(SETTING_KEYS.CLOUD_CREDENTIALS, DEFAULT_CLOUD_CREDENTIALS);
+    
+    // Update environment variables from loaded cloud credentials
+    updateCloudEnvVars();
+    
+    console.log("All settings initialized from database");
+  } catch (error) {
+    console.error("Error initializing settings:", error);
+  }
+}
+
+// Update cloud environment variables
+function updateCloudEnvVars(): void {
+  // Set GCP environment variables
+  if (currentCloudCredentials.gcpEnabled) {
+    process.env.GOOGLE_PROJECT_ID = currentCloudCredentials.gcpProjectId;
+    // In a production app, we would write the GCP credentials JSON to a file
+    // and set GOOGLE_APPLICATION_CREDENTIALS to that file path
+  }
+  
+  // Set Azure environment variables
+  if (currentCloudCredentials.azureEnabled) {
+    process.env.AZURE_TENANT_ID = currentCloudCredentials.azureTenantId;
+    process.env.AZURE_CLIENT_ID = currentCloudCredentials.azureClientId;
+    process.env.AZURE_CLIENT_SECRET = currentCloudCredentials.azureClientSecret;
+    process.env.AZURE_SUBSCRIPTION_ID = currentCloudCredentials.azureSubscriptionId;
+  }
+  
+  // Set AWS environment variables
+  if (currentCloudCredentials.awsEnabled) {
+    process.env.AWS_ACCESS_KEY_ID = currentCloudCredentials.awsAccessKeyId;
+    process.env.AWS_SECRET_ACCESS_KEY = currentCloudCredentials.awsSecretAccessKey;
+    process.env.AWS_REGION = currentCloudCredentials.awsRegion;
+  }
+}
+
 // Get database settings
 export async function getDatabaseSettings(req: Request, res: Response) {
   try {
@@ -137,14 +236,16 @@ export async function updateDatabaseSettings(req: Request, res: Response) {
       return res.status(400).json({ error: "Invalid database settings", details: result.error.format() });
     }
 
-    // In a real application, you would update the connection pool here
-    // For now, we'll just update our in-memory settings
+    // Update in-memory settings
     currentDbSettings = {
       ...currentDbSettings,
       ...result.data,
       // Don't update password if it's empty (to keep existing password)
       password: result.data.password || currentDbSettings.password
     };
+    
+    // Save to database
+    await saveSettingsToDB(SETTING_KEYS.DB_SETTINGS, currentDbSettings);
 
     res.json({ success: true, message: "Database settings updated successfully" });
   } catch (error) {
@@ -299,24 +400,11 @@ export async function updateCloudProviderCredentials(req: Request, res: Response
         : currentCloudCredentials.awsSecretAccessKey
     };
 
-    // Save credentials to environment variables for use by update script
-    if (currentCloudCredentials.gcpEnabled) {
-      process.env.GOOGLE_PROJECT_ID = currentCloudCredentials.gcpProjectId;
-      // GCP credentials JSON would normally be saved to a file
-    }
-    
-    if (currentCloudCredentials.azureEnabled) {
-      process.env.AZURE_TENANT_ID = currentCloudCredentials.azureTenantId;
-      process.env.AZURE_CLIENT_ID = currentCloudCredentials.azureClientId;
-      process.env.AZURE_CLIENT_SECRET = currentCloudCredentials.azureClientSecret;
-      process.env.AZURE_SUBSCRIPTION_ID = currentCloudCredentials.azureSubscriptionId;
-    }
-    
-    if (currentCloudCredentials.awsEnabled) {
-      process.env.AWS_ACCESS_KEY_ID = currentCloudCredentials.awsAccessKeyId;
-      process.env.AWS_SECRET_ACCESS_KEY = currentCloudCredentials.awsSecretAccessKey;
-      process.env.AWS_REGION = currentCloudCredentials.awsRegion;
-    }
+    // Save to database
+    await saveSettingsToDB(SETTING_KEYS.CLOUD_CREDENTIALS, currentCloudCredentials);
+
+    // Update environment variables
+    updateCloudEnvVars();
 
     res.json({ 
       success: true, 
