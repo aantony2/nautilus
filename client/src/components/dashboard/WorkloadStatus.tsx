@@ -1,14 +1,17 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { WorkloadData, WorkloadSummaryData } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { ArrowUpRight } from "lucide-react";
 
 interface WorkloadStatusProps {
   workloads: WorkloadData;
 }
 
 export default function WorkloadStatus({ workloads }: WorkloadStatusProps) {
+  const [, setLocation] = useLocation();
   const [clusterFilter, setClusterFilter] = useState("all");
   
   const filteredSummary = clusterFilter === "all" ? 
@@ -137,7 +140,11 @@ export default function WorkloadStatus({ workloads }: WorkloadStatusProps) {
           <h3 className="text-sm font-medium text-slate-400 mb-2">Top Resource Consumers</h3>
           <div className="bg-slate-700 rounded-md divide-y divide-slate-600">
             {workloads.topConsumers.map((consumer, index) => (
-              <div key={index} className="p-2 flex items-center justify-between">
+              <div 
+                key={index} 
+                className="p-2 flex items-center justify-between cursor-pointer hover:bg-slate-600 transition-colors"
+                onClick={() => setLocation(`/workloads/${consumer.id || `workload-${index + 1}`}`)}
+              >
                 <div className="flex items-center">
                   <div className={`w-2 h-8 ${
                     index === 0 ? 'bg-primary' : index === 1 ? 'bg-secondary' : 'bg-info'
@@ -147,9 +154,12 @@ export default function WorkloadStatus({ workloads }: WorkloadStatusProps) {
                     <p className="text-xs text-slate-400">{consumer.cluster}</p>
                   </div>
                 </div>
-                <div className="text-xs text-slate-300">
-                  <span>CPU: {consumer.resources.cpu}</span>
-                  <span className="ml-2">Mem: {consumer.resources.memory}</span>
+                <div className="flex items-center">
+                  <div className="text-xs text-slate-300 mr-2">
+                    <span>CPU: {consumer.resources.cpu}</span>
+                    <span className="ml-2">Mem: {consumer.resources.memory}</span>
+                  </div>
+                  <ArrowUpRight size={16} className="text-slate-400" />
                 </div>
               </div>
             ))}

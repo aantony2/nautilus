@@ -14,6 +14,7 @@ import Dashboard from "@/pages/Dashboard";
 import ClusterDetails from "@/pages/ClusterDetails";
 import Clusters from "@/pages/Clusters";
 import Workloads from "@/pages/Workloads";
+import WorkloadDetails from "@/pages/WorkloadDetails";
 import Services from "@/pages/Services";
 import Networking from "@/pages/Networking";
 import Security from "@/pages/Security";
@@ -50,6 +51,11 @@ function AppLayout() {
           <Route path="/clusters">
             <RequireAuth>
               <Clusters />
+            </RequireAuth>
+          </Route>
+          <Route path="/workloads/:id">
+            <RequireAuth>
+              <WorkloadDetails />
             </RequireAuth>
           </Route>
           <Route path="/workloads">
