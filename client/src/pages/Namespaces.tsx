@@ -163,11 +163,18 @@ export default function Namespaces() {
   const renderLabels = useCallback((labels: Record<string, string>) => {
     return Object.entries(labels)
       .slice(0, 3) // Show only first 3 labels
-      .map(([key, value]) => (
-        <Badge key={key} className="mr-1 mb-1 bg-indigo-600 hover:bg-indigo-700">
-          {key}={value}
-        </Badge>
-      ));
+      .map(([key, value]) => {
+        const labelText = `${key}=${value}`;
+        return (
+          <Badge 
+            key={key} 
+            className="mr-1 mb-1 bg-indigo-600 hover:bg-indigo-700 truncate max-w-[120px]"
+            title={labelText}
+          >
+            {labelText}
+          </Badge>
+        );
+      });
   }, []);
 
   if (isLoading) {
@@ -313,13 +320,13 @@ export default function Namespaces() {
                                     <Layers className="h-4 w-4 text-primary" />
                                   </div>
                                   <div className="ml-4">
-                                    <div className="text-sm font-medium text-white">{namespace.name}</div>
-                                    <div className="text-xs text-slate-400">{namespace.clusterId}</div>
+                                    <div className="text-sm font-medium text-white truncate max-w-[150px]" title={namespace.name}>{namespace.name}</div>
+                                    <div className="text-xs text-slate-400 truncate max-w-[150px]" title={namespace.clusterId}>{namespace.clusterId}</div>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                                {namespace.clusterName}
+                                <span className="truncate block max-w-[150px]" title={namespace.clusterName}>{namespace.clusterName}</span>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
@@ -358,7 +365,8 @@ export default function Namespaces() {
                                               .map(([key, value]) => (
                                                 <Badge
                                                   key={key}
-                                                  className="bg-indigo-600"
+                                                  className="bg-indigo-600 truncate max-w-[180px]"
+                                                  title={`${key}=${value}`}
                                                 >
                                                   {key}={value}
                                                 </Badge>
