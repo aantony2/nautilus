@@ -173,7 +173,7 @@ export default function Namespaces() {
           <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
             <div className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center">
-                <h1 className="text-lg font-semibold text-white">Kubernetes Namespaces</h1>
+                <h1 className="text-lg font-semibold text-white">Namespaces</h1>
               </div>
             </div>
           </header>
@@ -193,7 +193,7 @@ export default function Namespaces() {
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white">Kubernetes Namespaces</h1>
+              <h1 className="text-lg font-semibold text-white">Namespaces</h1>
             </div>
             <div className="flex items-center space-x-3">
               <Button 

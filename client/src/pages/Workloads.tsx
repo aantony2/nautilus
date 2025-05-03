@@ -49,7 +49,7 @@ export default function Workloads() {
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white">Kubernetes Workloads</h1>
+              <h1 className="text-lg font-semibold text-white">Workloads</h1>
             </div>
             <div className="flex items-center space-x-3">
               <div className="relative rounded-md w-64">
