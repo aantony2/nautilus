@@ -13,10 +13,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { 
   Database, 
   Save, 
-  RefreshCw, 
+  RefreshCw,
+  Cloud,
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
   Settings as SettingsIcon, 
   CircleCheck,
   Palette,
