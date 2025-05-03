@@ -7,7 +7,8 @@ import {
   Globe, 
   Router, 
   ShieldAlert, 
-  Bell 
+  Bell,
+  Layers
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export default function Sidebar({ className }: SidebarProps) {
     { icon: Server, label: "Clusters", href: "/clusters" },
     { icon: Boxes, label: "Workloads", href: "/workloads" },
     { icon: Globe, label: "Services", href: "/services" },
+    { icon: Layers, label: "Namespaces", href: "/namespaces" },
     { icon: Router, label: "Networking", href: "/networking" },
     { icon: ShieldAlert, label: "Security", href: "/security" },
     { icon: Bell, label: "Alerts", href: "/alerts" },

@@ -12,6 +12,7 @@ import Services from "@/pages/Services";
 import Networking from "@/pages/Networking";
 import Security from "@/pages/Security";
 import Alerts from "@/pages/Alerts";
+import Namespaces from "@/pages/Namespaces";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/networking" component={Networking} />
       <Route path="/security" component={Security} />
       <Route path="/alerts" component={Alerts} />
+      <Route path="/namespaces" component={Namespaces} />
       <Route component={NotFound} />
     </Switch>
   );

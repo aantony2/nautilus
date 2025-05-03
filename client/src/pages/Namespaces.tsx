@@ -52,11 +52,48 @@ export default function Namespaces() {
   const { data: namespaces, isLoading } = useQuery({
     queryKey: ["/api/namespaces"],
     queryFn: getQueryFn({ on401: "throw" }),
-  });
+  }) as { data: NamespaceData[] | undefined, isLoading: boolean };
+
+  // Filter namespaces based on search and filters
+  const filteredNamespaces = useMemo(() => {
+    if (!namespaces || !Array.isArray(namespaces)) return [] as NamespaceData[];
+
+    return namespaces.filter((ns: NamespaceData) => {
+      // Filter by status
+      if (statusFilter !== "all" && ns.status !== statusFilter) {
+        return false;
+      }
+
+      // Filter by cluster
+      if (clusterFilter !== "all" && ns.clusterName !== clusterFilter) {
+        return false;
+      }
+
+      // Search in name, labels, or annotations
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const nameMatch = ns.name.toLowerCase().includes(query);
+        const labelMatch = Object.entries(ns.labels || {}).some(
+          ([key, value]) =>
+            key.toLowerCase().includes(query) ||
+            String(value).toLowerCase().includes(query)
+        );
+        const annotationMatch = Object.entries(ns.annotations || {}).some(
+          ([key, value]) =>
+            key.toLowerCase().includes(query) ||
+            String(value).toLowerCase().includes(query)
+        );
+
+        return nameMatch || labelMatch || annotationMatch;
+      }
+
+      return true;
+    });
+  }, [namespaces, statusFilter, clusterFilter, searchQuery]);
 
   // CSV export functionality
   const exportToCSV = useCallback(() => {
-    if (!namespaces || !Array.isArray(namespaces) || namespaces.length === 0) return;
+    if (!filteredNamespaces || filteredNamespaces.length === 0) return;
 
     // Define CSV headers
     const headers = [
@@ -85,7 +122,7 @@ export default function Namespaces() {
     ] as const;
 
     // Transform function to handle special cases
-    const transform = (key: keyof NamespaceData, value: any) => {
+    const transform = (key: string, value: any) => {
       if (key === 'resourceQuota') {
         return value ? "Yes" : "No";
       }
@@ -99,57 +136,22 @@ export default function Namespaces() {
 
     // Use the utility to export
     exportObjectsToCsv(
-      filteredNamespaces as NamespaceData[],
+      filteredNamespaces,
       headers,
-      keys as unknown as (keyof NamespaceData)[],
+      keys as string[],
       "kubernetes-namespaces",
       transform
     );
-  }, [namespaces, filteredNamespaces]);
+  }, [filteredNamespaces]);
 
   // Get unique clusters for filtering
   const uniqueClusters = useMemo(() => {
-    if (!namespaces) return [];
-    const clusters = new Set(namespaces.map((ns) => ns.clusterName));
+    if (!namespaces || !Array.isArray(namespaces)) return [] as string[];
+    
+    const clusters = new Set<string>();
+    namespaces.forEach(ns => clusters.add(ns.clusterName));
     return Array.from(clusters);
   }, [namespaces]);
-
-  // Filter namespaces based on search and filters
-  const filteredNamespaces = useMemo(() => {
-    if (!namespaces) return [];
-
-    return namespaces.filter((ns) => {
-      // Filter by status
-      if (statusFilter !== "all" && ns.status !== statusFilter) {
-        return false;
-      }
-
-      // Filter by cluster
-      if (clusterFilter !== "all" && ns.clusterName !== clusterFilter) {
-        return false;
-      }
-
-      // Search in name, labels, or annotations
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const nameMatch = ns.name.toLowerCase().includes(query);
-        const labelMatch = Object.entries(ns.labels).some(
-          ([key, value]) =>
-            key.toLowerCase().includes(query) ||
-            value.toString().toLowerCase().includes(query)
-        );
-        const annotationMatch = Object.entries(ns.annotations).some(
-          ([key, value]) =>
-            key.toLowerCase().includes(query) ||
-            value.toString().toLowerCase().includes(query)
-        );
-
-        return nameMatch || labelMatch || annotationMatch;
-      }
-
-      return true;
-    });
-  }, [namespaces, statusFilter, clusterFilter, searchQuery]);
 
   const renderLabels = useCallback((labels: Record<string, string>) => {
     return Object.entries(labels)
@@ -189,7 +191,7 @@ export default function Namespaces() {
               <Button 
                 variant="secondary" 
                 onClick={exportToCSV}
-                disabled={!namespaces || namespaces.length === 0}
+                disabled={filteredNamespaces.length === 0}
               >
                 <DownloadIcon className="h-4 w-4 mr-1" />
                 Export CSV
@@ -276,7 +278,7 @@ export default function Namespaces() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredNamespaces.map((namespace) => (
+                      filteredNamespaces.map((namespace: NamespaceData) => (
                         <TableRow
                           key={`${namespace.clusterId}-${namespace.name}`}
                           className="hover:bg-slate-750 border-t border-slate-700"
@@ -355,7 +357,7 @@ export default function Namespaces() {
                 </Table>
               </div>
               <div className="text-xs text-slate-500 mt-2">
-                Showing {filteredNamespaces.length} of {namespaces?.length || 0}{" "}
+                Showing {filteredNamespaces.length} of {Array.isArray(namespaces) ? namespaces.length : 0}{" "}
                 namespaces
               </div>
             </CardContent>
@@ -374,70 +376,61 @@ export default function Namespaces() {
                   </h3>
                   <Separator className="my-2 bg-slate-700" />
                   <div className="mt-2 space-y-2">
-                    {namespaces && namespaces.length > 0 && (
-                      <>
-                        {/* Count occurrences of top labels */}
-                        {(() => {
-                          const labelCounts: Record<string, number> = {};
-                          namespaces.forEach((ns) => {
-                            Object.keys(ns.labels).forEach((label) => {
-                              labelCounts[label] = (labelCounts[label] || 0) + 1;
-                            });
-                          });
-                          
-                          // Get top 5 labels
-                          return Object.entries(labelCounts)
-                            .sort((a, b) => b[1] - a[1])
-                            .slice(0, 5)
-                            .map(([label, count]) => (
-                              <div 
-                                key={label} 
-                                className="flex justify-between items-center text-sm"
-                              >
-                                <span className="text-slate-300">{label}</span>
-                                <Badge className="bg-blue-600">
-                                  {count} namespaces
-                                </Badge>
-                              </div>
-                            ));
-                        })()}
-                      </>
-                    )}
+                    {Array.isArray(namespaces) && namespaces.length > 0 && (() => {
+                      const labelCounts: Record<string, number> = {};
+                      namespaces.forEach((ns: NamespaceData) => {
+                        Object.keys(ns.labels || {}).forEach((label) => {
+                          labelCounts[label] = (labelCounts[label] || 0) + 1;
+                        });
+                      });
+                      
+                      // Get top 5 labels
+                      return Object.entries(labelCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5)
+                        .map(([label, count]) => (
+                          <div 
+                            key={label} 
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <Badge className="bg-indigo-600">{label}</Badge>
+                            <span className="text-slate-400">
+                              {count} {count === 1 ? 'namespace' : 'namespaces'}
+                            </span>
+                          </div>
+                        ));
+                    })()}
                   </div>
                 </div>
                 
                 <div className="bg-slate-750 rounded-lg p-4 border border-slate-700">
                   <h3 className="text-white font-semibold mb-2 flex items-center">
-                    <Server className="h-4 w-4 mr-1 text-purple-400" />
-                    Cluster Distribution
+                    <Server className="h-4 w-4 mr-1 text-blue-400" />
+                    Namespace Count by Cluster
                   </h3>
                   <Separator className="my-2 bg-slate-700" />
                   <div className="mt-2 space-y-2">
-                    {namespaces && namespaces.length > 0 && (
-                      <>
-                        {/* Group namespaces by cluster */}
-                        {(() => {
-                          const clusterCounts: Record<string, number> = {};
-                          namespaces.forEach((ns) => {
-                            clusterCounts[ns.clusterName] = (clusterCounts[ns.clusterName] || 0) + 1;
-                          });
-                          
-                          return Object.entries(clusterCounts)
-                            .sort((a, b) => b[1] - a[1])
-                            .map(([cluster, count]) => (
-                              <div 
-                                key={cluster} 
-                                className="flex justify-between items-center text-sm"
-                              >
-                                <span className="text-slate-300">{cluster}</span>
-                                <Badge className="bg-purple-600">
-                                  {count} namespaces
-                                </Badge>
-                              </div>
-                            ));
-                        })()}
-                      </>
-                    )}
+                    {Array.isArray(namespaces) && namespaces.length > 0 && (() => {
+                      const clusterCounts: Record<string, number> = {};
+                      namespaces.forEach((ns: NamespaceData) => {
+                        clusterCounts[ns.clusterName] = (clusterCounts[ns.clusterName] || 0) + 1;
+                      });
+                      
+                      // Get all clusters
+                      return Object.entries(clusterCounts)
+                        .sort((a, b) => b[1] - a[1])
+                        .map(([cluster, count]) => (
+                          <div 
+                            key={cluster} 
+                            className="flex justify-between items-center text-sm"
+                          >
+                            <span className="text-white">{cluster}</span>
+                            <span className="text-slate-400">
+                              {count} {count === 1 ? 'namespace' : 'namespaces'}
+                            </span>
+                          </div>
+                        ));
+                    })()}
                   </div>
                 </div>
               </div>
