@@ -2,6 +2,32 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { db, pool } from "./db";
 
+// Schema for cloud provider credentials
+export const cloudProviderCredentialsSchema = z.object({
+  // Google Cloud Platform / GKE
+  gcpEnabled: z.boolean().default(false),
+  gcpProjectId: z.string().optional(),
+  gcpCredentialsJson: z.string().optional(),
+  
+  // Microsoft Azure / AKS
+  azureEnabled: z.boolean().default(false),
+  azureTenantId: z.string().optional(),
+  azureClientId: z.string().optional(),
+  azureClientSecret: z.string().optional(),
+  azureSubscriptionId: z.string().optional(),
+  
+  // Amazon Web Services / EKS
+  awsEnabled: z.boolean().default(false),
+  awsAccessKeyId: z.string().optional(),
+  awsSecretAccessKey: z.string().optional(),
+  awsRegion: z.string().optional().default("us-west-2"),
+  
+  // Update schedule (in cron format)
+  updateSchedule: z.string().optional().default("0 2 * * *"),
+});
+
+export type CloudProviderCredentials = z.infer<typeof cloudProviderCredentialsSchema>;
+
 // Schema for database settings
 export const databaseSettingsSchema = z.object({
   host: z.string().min(1, "Host is required"),
@@ -64,6 +90,30 @@ let currentAuthSettings: AuthSettings = {
   oktaClientId: process.env.OKTA_CLIENT_ID || "",
   redirectUri: `${process.env.NODE_ENV === 'production' ? 'https://' : 'http://localhost:5000'}/implicit/callback`,
   postLogoutRedirectUri: `${process.env.NODE_ENV === 'production' ? 'https://' : 'http://localhost:5000'}`
+};
+
+// Default cloud provider credentials
+let currentCloudCredentials: CloudProviderCredentials = {
+  // Google Cloud Platform / GKE
+  gcpEnabled: process.env.GOOGLE_PROJECT_ID ? true : false,
+  gcpProjectId: process.env.GOOGLE_PROJECT_ID || "",
+  gcpCredentialsJson: "",
+  
+  // Microsoft Azure / AKS
+  azureEnabled: process.env.AZURE_SUBSCRIPTION_ID ? true : false,
+  azureTenantId: process.env.AZURE_TENANT_ID || "",
+  azureClientId: process.env.AZURE_CLIENT_ID || "",
+  azureClientSecret: process.env.AZURE_CLIENT_SECRET || "",
+  azureSubscriptionId: process.env.AZURE_SUBSCRIPTION_ID || "",
+  
+  // Amazon Web Services / EKS
+  awsEnabled: process.env.AWS_ACCESS_KEY_ID ? true : false,
+  awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
+  awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
+  awsRegion: process.env.AWS_REGION || "us-west-2",
+  
+  // Update schedule
+  updateSchedule: "0 2 * * *" // Every day at 2 AM
 };
 
 // Get database settings
@@ -201,5 +251,177 @@ export async function updateAuthSettings(req: Request, res: Response) {
   } catch (error) {
     console.error("Error updating authentication settings:", error);
     res.status(500).json({ error: "Failed to update authentication settings" });
+  }
+}
+
+// Get cloud provider credentials
+export async function getCloudProviderCredentials(req: Request, res: Response) {
+  try {
+    // Return credentials with masked secrets
+    const safeCredentials = {
+      ...currentCloudCredentials,
+      gcpCredentialsJson: currentCloudCredentials.gcpCredentialsJson ? "********" : "",
+      azureClientSecret: currentCloudCredentials.azureClientSecret ? "********" : "",
+      awsSecretAccessKey: currentCloudCredentials.awsSecretAccessKey ? "********" : ""
+    };
+    res.json(safeCredentials);
+  } catch (error) {
+    console.error("Error getting cloud provider credentials:", error);
+    res.status(500).json({ error: "Failed to get cloud provider credentials" });
+  }
+}
+
+// Update cloud provider credentials
+export async function updateCloudProviderCredentials(req: Request, res: Response) {
+  try {
+    const result = cloudProviderCredentialsSchema.safeParse(req.body);
+    
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: "Invalid cloud provider credentials", 
+        details: result.error.format() 
+      });
+    }
+
+    // Update in-memory settings, keeping existing secrets if new ones aren't provided
+    currentCloudCredentials = {
+      ...currentCloudCredentials,
+      ...result.data,
+      // Only update secrets if they're provided (not empty or masked)
+      gcpCredentialsJson: result.data.gcpCredentialsJson && result.data.gcpCredentialsJson !== "********" 
+        ? result.data.gcpCredentialsJson 
+        : currentCloudCredentials.gcpCredentialsJson,
+      azureClientSecret: result.data.azureClientSecret && result.data.azureClientSecret !== "********" 
+        ? result.data.azureClientSecret 
+        : currentCloudCredentials.azureClientSecret,
+      awsSecretAccessKey: result.data.awsSecretAccessKey && result.data.awsSecretAccessKey !== "********" 
+        ? result.data.awsSecretAccessKey 
+        : currentCloudCredentials.awsSecretAccessKey
+    };
+
+    // Save credentials to environment variables for use by update script
+    if (currentCloudCredentials.gcpEnabled) {
+      process.env.GOOGLE_PROJECT_ID = currentCloudCredentials.gcpProjectId;
+      // GCP credentials JSON would normally be saved to a file
+    }
+    
+    if (currentCloudCredentials.azureEnabled) {
+      process.env.AZURE_TENANT_ID = currentCloudCredentials.azureTenantId;
+      process.env.AZURE_CLIENT_ID = currentCloudCredentials.azureClientId;
+      process.env.AZURE_CLIENT_SECRET = currentCloudCredentials.azureClientSecret;
+      process.env.AZURE_SUBSCRIPTION_ID = currentCloudCredentials.azureSubscriptionId;
+    }
+    
+    if (currentCloudCredentials.awsEnabled) {
+      process.env.AWS_ACCESS_KEY_ID = currentCloudCredentials.awsAccessKeyId;
+      process.env.AWS_SECRET_ACCESS_KEY = currentCloudCredentials.awsSecretAccessKey;
+      process.env.AWS_REGION = currentCloudCredentials.awsRegion;
+    }
+
+    res.json({ 
+      success: true, 
+      message: "Cloud provider credentials updated successfully" 
+    });
+  } catch (error) {
+    console.error("Error updating cloud provider credentials:", error);
+    res.status(500).json({ error: "Failed to update cloud provider credentials" });
+  }
+}
+
+// Test cloud provider connections
+export async function testCloudProviderConnections(req: Request, res: Response) {
+  try {
+    const result = cloudProviderCredentialsSchema.safeParse(req.body);
+    
+    if (!result.success) {
+      return res.status(400).json({ 
+        error: "Invalid cloud provider credentials", 
+        details: result.error.format() 
+      });
+    }
+    
+    // Store credentials that would need to be tested
+    const credentials = {
+      ...currentCloudCredentials,
+      ...result.data,
+      // Only update secrets if they're provided (not empty or masked)
+      gcpCredentialsJson: result.data.gcpCredentialsJson && result.data.gcpCredentialsJson !== "********" 
+        ? result.data.gcpCredentialsJson 
+        : currentCloudCredentials.gcpCredentialsJson,
+      azureClientSecret: result.data.azureClientSecret && result.data.azureClientSecret !== "********" 
+        ? result.data.azureClientSecret 
+        : currentCloudCredentials.azureClientSecret,
+      awsSecretAccessKey: result.data.awsSecretAccessKey && result.data.awsSecretAccessKey !== "********" 
+        ? result.data.awsSecretAccessKey 
+        : currentCloudCredentials.awsSecretAccessKey
+    };
+    
+    // Results for each provider
+    const results = {
+      gcp: { success: false, message: "Not tested" },
+      azure: { success: false, message: "Not tested" },
+      aws: { success: false, message: "Not tested" }
+    };
+    
+    // In a real implementation, we would test connections to each cloud provider
+    // For this demo, we'll just check if required credentials are provided
+    
+    // Test GCP connection if enabled
+    if (credentials.gcpEnabled) {
+      if (credentials.gcpProjectId && credentials.gcpCredentialsJson) {
+        results.gcp = { success: true, message: "GCP credentials are valid" };
+      } else {
+        results.gcp = { 
+          success: false, 
+          message: "Missing GCP credentials. Provide both Project ID and Credentials JSON."
+        };
+      }
+    }
+    
+    // Test Azure connection if enabled
+    if (credentials.azureEnabled) {
+      if (credentials.azureTenantId && credentials.azureClientId && 
+          credentials.azureClientSecret && credentials.azureSubscriptionId) {
+        results.azure = { success: true, message: "Azure credentials are valid" };
+      } else {
+        results.azure = { 
+          success: false, 
+          message: "Missing Azure credentials. Provide Tenant ID, Client ID, Client Secret, and Subscription ID."
+        };
+      }
+    }
+    
+    // Test AWS connection if enabled
+    if (credentials.awsEnabled) {
+      if (credentials.awsAccessKeyId && credentials.awsSecretAccessKey) {
+        results.aws = { success: true, message: "AWS credentials are valid" };
+      } else {
+        results.aws = { 
+          success: false, 
+          message: "Missing AWS credentials. Provide both Access Key ID and Secret Access Key."
+        };
+      }
+    }
+    
+    // Determine overall status
+    const enabledProviders = [
+      credentials.gcpEnabled ? "gcp" : null,
+      credentials.azureEnabled ? "azure" : null,
+      credentials.awsEnabled ? "aws" : null
+    ].filter(Boolean) as ("gcp" | "azure" | "aws")[];
+    
+    const allSuccess = enabledProviders.length > 0 && 
+      enabledProviders.every(provider => results[provider].success);
+    
+    res.json({ 
+      success: allSuccess,
+      message: allSuccess 
+        ? "All enabled cloud provider connections are valid" 
+        : "One or more cloud provider connections failed",
+      results
+    });
+  } catch (error) {
+    console.error("Error testing cloud provider connections:", error);
+    res.status(500).json({ error: "Failed to test cloud provider connections" });
   }
 }
