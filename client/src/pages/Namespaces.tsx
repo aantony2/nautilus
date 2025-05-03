@@ -14,7 +14,8 @@ import {
   FileDown,
   Box,
   Layers,
-  FolderClosed
+  FolderClosed,
+  FileText
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -228,7 +229,7 @@ export default function Namespaces() {
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     </div>
                     
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
                         <SelectTrigger className="w-full sm:w-[130px] bg-slate-700 border-slate-600 text-white">
                           <div className="flex items-center">
@@ -264,12 +265,12 @@ export default function Namespaces() {
                       
                       <Button 
                         variant="ghost" 
-                        size="icon" 
                         onClick={exportToCSV}
                         title="Export to CSV"
-                        className="ml-auto text-slate-400 hover:text-white"
+                        className="flex items-center h-9 px-3 text-slate-400 hover:text-white"
                       >
-                        <FileDown className="h-5 w-5" />
+                        <FileText className="h-4 w-4 mr-2" />
+                        <span>Export</span>
                       </Button>
                     </div>
                   </div>
