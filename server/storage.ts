@@ -8,7 +8,11 @@ import {
   EventData,
   WorkloadData,
   ClusterMetrics,
-  clusters
+  clusters,
+  namespaces,
+  InsertNamespace,
+  Namespace,
+  NamespaceData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
@@ -26,6 +30,12 @@ export interface IStorage {
   getServiceHealth(): Promise<ServiceHealthData[]>;
   getRecentEvents(): Promise<EventData[]>;
   getWorkloadStatus(): Promise<WorkloadData>;
+  
+  // Namespace methods
+  getNamespaces(): Promise<NamespaceData[]>;
+  getNamespacesByCluster(clusterId: string): Promise<NamespaceData[]>;
+  getNamespaceById(id: number): Promise<NamespaceData | undefined>;
+  createNamespace(namespace: InsertNamespace): Promise<Namespace>;
 }
 
 // Database implementation of storage
@@ -281,6 +291,115 @@ export class DatabaseStorage implements IStorage {
       ]
     };
   }
+  
+  // Namespace methods
+  async getNamespaces(): Promise<NamespaceData[]> {
+    try {
+      // Join namespaces and clusters to get cluster names
+      const result = await db.select({
+        id: namespaces.id,
+        clusterId: namespaces.clusterId,
+        clusterName: clusters.name,
+        name: namespaces.name,
+        status: namespaces.status,
+        age: namespaces.age,
+        phase: namespaces.phase,
+        labels: namespaces.labels,
+        annotations: namespaces.annotations,
+        podCount: namespaces.podCount,
+        resourceQuota: namespaces.resourceQuota,
+        createdAt: namespaces.createdAt
+      })
+      .from(namespaces)
+      .innerJoin(clusters, eq(namespaces.clusterId, clusters.clusterId));
+      
+      return result.map(ns => ({
+        ...ns,
+        labels: ns.labels as Record<string, string> || {},
+        annotations: ns.annotations as Record<string, string> || {},
+        createdAt: ns.createdAt ? new Date(ns.createdAt).toISOString() : new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error("Error fetching namespaces from database:", error);
+      return [];
+    }
+  }
+
+  async getNamespacesByCluster(clusterId: string): Promise<NamespaceData[]> {
+    try {
+      const result = await db.select({
+        id: namespaces.id,
+        clusterId: namespaces.clusterId,
+        clusterName: clusters.name,
+        name: namespaces.name,
+        status: namespaces.status,
+        age: namespaces.age,
+        phase: namespaces.phase,
+        labels: namespaces.labels,
+        annotations: namespaces.annotations,
+        podCount: namespaces.podCount,
+        resourceQuota: namespaces.resourceQuota,
+        createdAt: namespaces.createdAt
+      })
+      .from(namespaces)
+      .innerJoin(clusters, eq(namespaces.clusterId, clusters.clusterId))
+      .where(eq(namespaces.clusterId, clusterId));
+      
+      return result.map(ns => ({
+        ...ns,
+        labels: ns.labels as Record<string, string> || {},
+        annotations: ns.annotations as Record<string, string> || {},
+        createdAt: ns.createdAt ? new Date(ns.createdAt).toISOString() : new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error(`Error fetching namespaces for cluster ${clusterId} from database:`, error);
+      return [];
+    }
+  }
+
+  async getNamespaceById(id: number): Promise<NamespaceData | undefined> {
+    try {
+      const [result] = await db.select({
+        id: namespaces.id,
+        clusterId: namespaces.clusterId,
+        clusterName: clusters.name,
+        name: namespaces.name,
+        status: namespaces.status,
+        age: namespaces.age,
+        phase: namespaces.phase,
+        labels: namespaces.labels,
+        annotations: namespaces.annotations,
+        podCount: namespaces.podCount,
+        resourceQuota: namespaces.resourceQuota,
+        createdAt: namespaces.createdAt
+      })
+      .from(namespaces)
+      .innerJoin(clusters, eq(namespaces.clusterId, clusters.clusterId))
+      .where(eq(namespaces.id, id));
+      
+      if (!result) return undefined;
+      
+      return {
+        ...result,
+        labels: result.labels as Record<string, string> || {},
+        annotations: result.annotations as Record<string, string> || {},
+        createdAt: result.createdAt ? new Date(result.createdAt).toISOString() : new Date().toISOString()
+      };
+    } catch (error) {
+      console.error(`Error fetching namespace with ID ${id} from database:`, error);
+      return undefined;
+    }
+  }
+
+  async createNamespace(ns: InsertNamespace): Promise<Namespace> {
+    try {
+      const [namespace] = await db.insert(namespaces).values(ns).returning();
+      return namespace;
+    } catch (error) {
+      console.error("Error creating namespace in database:", error);
+      throw error;
+    }
+  }
 
   // Helper method to initialize database with sample data if needed
   async initializeWithSampleData() {
@@ -404,8 +523,118 @@ export class DatabaseStorage implements IStorage {
       // Insert sample data
       await db.insert(clusters).values(sampleClusters);
       console.log("Sample cluster data inserted successfully");
+      
+      // Initialize sample namespaces
+      const sampleNamespaces = [
+        // gke-prod-cluster1 namespaces
+        {
+          clusterId: "gke-prod-cluster1",
+          name: "default",
+          status: "Active",
+          age: "423d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "default",
+            "environment": "production"
+          },
+          annotations: { 
+            "kubernetes.io/description": "Default namespace"
+          },
+          podCount: 12,
+          resourceQuota: false
+        },
+        {
+          clusterId: "gke-prod-cluster1",
+          name: "kube-system",
+          status: "Active",
+          age: "423d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "kube-system",
+            "environment": "system" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "System components"
+          },
+          podCount: 18,
+          resourceQuota: false
+        },
+        {
+          clusterId: "gke-prod-cluster1",
+          name: "monitoring",
+          status: "Active",
+          age: "378d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "monitoring",
+            "environment": "production",
+            "app": "prometheus"
+          },
+          annotations: { 
+            "kubernetes.io/description": "Monitoring components"
+          },
+          podCount: 8,
+          resourceQuota: true
+        },
+        {
+          clusterId: "gke-prod-cluster1",
+          name: "backend",
+          status: "Active",
+          age: "182d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "backend",
+            "environment": "production",
+            "app": "backend-api",
+            "team": "platform" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "Backend services"
+          },
+          podCount: 14,
+          resourceQuota: true
+        },
+        // aks-prod-eastus namespaces
+        {
+          clusterId: "aks-prod-eastus",
+          name: "default",
+          status: "Active",
+          age: "321d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "default",
+            "environment": "production" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "Default namespace"
+          },
+          podCount: 5,
+          resourceQuota: false
+        },
+        {
+          clusterId: "aks-prod-eastus",
+          name: "database",
+          status: "Active",
+          age: "250d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "database",
+            "environment": "production",
+            "app": "postgres",
+            "team": "data" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "Database services"
+          },
+          podCount: 6,
+          resourceQuota: true
+        }
+      ];
+      
+      await db.insert(namespaces).values(sampleNamespaces);
+      console.log("Sample namespace data inserted successfully");
     } catch (error) {
-      console.error("Error inserting sample cluster data:", error);
+      console.error("Error inserting sample data:", error);
     }
   }
 }

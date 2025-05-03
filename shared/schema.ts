@@ -204,3 +204,42 @@ export interface WorkloadData {
     };
   }>;
 }
+
+// Kubernetes Namespaces
+export const namespaces = pgTable("namespaces", {
+  id: serial("id").primaryKey(),
+  clusterId: text("cluster_id").notNull().references(() => clusters.clusterId),
+  name: text("name").notNull(),
+  status: text("status").notNull(), // Active, Terminating
+  age: text("age").notNull(),
+  phase: text("phase").notNull(), // Active, Terminating
+  labels: jsonb("labels"), // Store namespace labels as JSON
+  annotations: jsonb("annotations"), // Store namespace annotations as JSON
+  podCount: integer("pod_count").default(0),
+  resourceQuota: boolean("resource_quota").default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertNamespaceSchema = createInsertSchema(namespaces).omit({ 
+  id: true,
+  createdAt: true 
+});
+
+export type InsertNamespace = z.infer<typeof insertNamespaceSchema>;
+export type Namespace = typeof namespaces.$inferSelect;
+
+// Namespace data interface for API responses
+export interface NamespaceData {
+  id: number;
+  clusterId: string;
+  clusterName: string;
+  name: string;
+  status: string;
+  age: string;
+  phase: string;
+  labels: Record<string, string>;
+  annotations: Record<string, string>;
+  podCount: number;
+  resourceQuota: boolean;
+  createdAt: string;
+}
