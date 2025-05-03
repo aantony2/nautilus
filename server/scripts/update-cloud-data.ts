@@ -74,11 +74,14 @@ const initAwsClients = () => {
   return { eksClient, ec2Client };
 };
 
+// Global variable to store KubeConfig for reuse
+let globalKc: k8s.KubeConfig;
+
 // Utility function to connect to K8s cluster
 async function connectToK8sCluster(config: string): Promise<k8s.CoreV1Api> {
-  const kc = new k8s.KubeConfig();
-  kc.loadFromString(config);
-  return kc.makeApiClient(k8s.CoreV1Api);
+  globalKc = new k8s.KubeConfig();
+  globalKc.loadFromString(config);
+  return globalKc.makeApiClient(k8s.CoreV1Api);
 }
 
 // Helper to fetch accessible projects in GCP
@@ -444,7 +447,7 @@ async function fetchEKSClusters(defaultRegion = 'us-west-2', scanAllRegions = fa
 async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: string): Promise<ClusterData & { dependencies?: ClusterDependencyData[], namespacesCollection?: NamespaceData[] }> {
   try {
     const k8sApi = await connectToK8sCluster(kubeConfig);
-    const appsV1Api = kc.makeApiClient(k8s.AppsV1Api);
+    const appsV1Api = globalKc.makeApiClient(k8s.AppsV1Api);
     
     // Get namespace count
     const { body: namespaceList } = await k8sApi.listNamespace();
@@ -639,7 +642,10 @@ function calculateAge(timestamp: string): string {
 }
 
 // Function to update database with collected data
-async function updateDatabase(allClusters: ClusterData[], allNamespaces: NamespaceData[]) {
+async function updateDatabase(
+  allClusters: (ClusterData & { dependencies?: ClusterDependencyData[] })[],
+  allNamespaces: NamespaceData[]
+) {
   console.log('Updating database with collected data...');
   
   try {
@@ -655,16 +661,21 @@ async function updateDatabase(allClusters: ClusterData[], allNamespaces: Namespa
     const clustersToUpdate: ClusterData[] = [];
     
     allClusters.forEach(cluster => {
-      if (existingClusterIds.includes(cluster.id)) {
-        clustersToUpdate.push(cluster);
+      // Extract dependencies and base cluster data
+      const { dependencies, ...clusterData } = cluster;
+      
+      if (existingClusterIds.includes(clusterData.id)) {
+        clustersToUpdate.push(clusterData);
       } else {
-        clustersToInsert.push(cluster);
+        clustersToInsert.push(clusterData);
       }
     });
     
     // Insert new clusters
     if (clustersToInsert.length > 0) {
-      await db.insert(clusters).values(clustersToInsert);
+      for (const cluster of clustersToInsert) {
+        await db.insert(clusters).values(cluster);
+      }
       console.log(`Inserted ${clustersToInsert.length} new clusters`);
     }
     
@@ -705,15 +716,39 @@ async function updateDatabase(allClusters: ClusterData[], allNamespaces: Namespa
     
     // Insert new namespaces
     if (namespacesToInsert.length > 0) {
-      await db.insert(namespaces).values(namespacesToInsert);
+      for (const ns of namespacesToInsert) {
+        await db.insert(namespaces).values({
+          clusterId: ns.clusterId,
+          name: ns.name,
+          status: ns.status,
+          age: ns.age,
+          phase: ns.phase,
+          labels: ns.labels,
+          annotations: ns.annotations,
+          podCount: ns.podCount,
+          resourceQuota: ns.resourceQuota,
+          createdAt: new Date(ns.createdAt)
+        });
+      }
       console.log(`Inserted ${namespacesToInsert.length} new namespaces`);
     }
     
     // Update existing namespaces
-    for (const namespace of namespacesToUpdate) {
+    for (const ns of namespacesToUpdate) {
       await db.update(namespaces)
-        .set(namespace)
-        .where(eq(namespaces.id, namespace.id));
+        .set({
+          clusterId: ns.clusterId,
+          name: ns.name,
+          status: ns.status,
+          age: ns.age,
+          phase: ns.phase,
+          labels: ns.labels,
+          annotations: ns.annotations,
+          podCount: ns.podCount,
+          resourceQuota: ns.resourceQuota,
+          createdAt: new Date(ns.createdAt)
+        })
+        .where(eq(namespaces.id, ns.id));
     }
     console.log(`Updated ${namespacesToUpdate.length} existing namespaces`);
     
@@ -730,6 +765,81 @@ async function updateDatabase(allClusters: ClusterData[], allNamespaces: Namespa
       const namespaceIds = namespacesToDelete.map(ns => ns.id);
       await db.delete(namespaces).where(inArray(namespaces.id, namespaceIds));
       console.log(`Deleted ${namespacesToDelete.length} namespaces that no longer exist`);
+    }
+    
+    // Handle cluster dependencies
+    console.log('Processing cluster dependencies...');
+    const allDependencies: ClusterDependencyData[] = [];
+    
+    // Collect all dependencies from clusters
+    for (const cluster of allClusters) {
+      if (cluster.dependencies && cluster.dependencies.length > 0) {
+        allDependencies.push(...cluster.dependencies);
+      }
+    }
+    
+    if (allDependencies.length > 0) {
+      // Get existing dependencies
+      const existingDependencies = await db.select({
+        id: clusterDependencies.id,
+        clusterId: clusterDependencies.clusterId,
+        name: clusterDependencies.name,
+        namespace: clusterDependencies.namespace
+      }).from(clusterDependencies);
+      
+      // Process dependencies
+      for (const dependency of allDependencies) {
+        const existingDep = existingDependencies.find(d => 
+          d.clusterId === dependency.clusterId && 
+          d.name === dependency.name && 
+          d.namespace === dependency.namespace
+        );
+        
+        if (existingDep) {
+          // Update existing dependency
+          await db.update(clusterDependencies)
+            .set({
+              type: dependency.type,
+              status: dependency.status,
+              version: dependency.version,
+              metadata: dependency.metadata,
+              detectedAt: new Date()
+            })
+            .where(eq(clusterDependencies.id, existingDep.id));
+        } else {
+          // Insert new dependency
+          await db.insert(clusterDependencies).values({
+            clusterId: dependency.clusterId,
+            type: dependency.type,
+            name: dependency.name,
+            namespace: dependency.namespace,
+            status: dependency.status,
+            version: dependency.version,
+            metadata: dependency.metadata,
+            detectedAt: new Date()
+          });
+        }
+      }
+      
+      console.log(`Processed ${allDependencies.length} cluster dependencies`);
+      
+      // Clean up old dependencies that no longer exist
+      for (const cluster of allClusters) {
+        if (cluster.dependencies) {
+          const currentDependencyKeys = cluster.dependencies.map(d => `${d.clusterId}:${d.name}:${d.namespace}`);
+          const existingClusterDeps = existingDependencies.filter(d => d.clusterId === cluster.id);
+          
+          const dependenciesToDelete = existingClusterDeps.filter(d => 
+            !currentDependencyKeys.includes(`${d.clusterId}:${d.name}:${d.namespace}`)
+          );
+          
+          if (dependenciesToDelete.length > 0) {
+            const depIds = dependenciesToDelete.map(d => d.id);
+            await db.delete(clusterDependencies).where(inArray(clusterDependencies.id, depIds));
+            console.log(`Deleted ${dependenciesToDelete.length} dependencies that no longer exist for cluster ${cluster.id}`);
+          }
+        }
+      }
     }
     
     // Commit transaction
@@ -876,13 +986,30 @@ async function main() {
         continue;
       }
       
-      const enrichedCluster = await enrichClusterDataFromK8s(cluster, kubeConfig);
-      enrichedClusters.push(enrichedCluster);
-      
-      // Collect namespaces
-      if ('namespacesCollection' in enrichedCluster && Array.isArray(enrichedCluster.namespacesCollection)) {
-        allNamespaces.push(...(enrichedCluster.namespacesCollection as NamespaceData[]));
-        delete enrichedCluster.namespacesCollection;
+      try {
+        console.log(`Enriching cluster ${cluster.name} and detecting dependencies...`);
+        const enrichedCluster = await enrichClusterDataFromK8s(cluster, kubeConfig);
+        
+        // Log detected dependencies
+        if (enrichedCluster.dependencies && enrichedCluster.dependencies.length > 0) {
+          console.log(`Found ${enrichedCluster.dependencies.length} dependencies for ${cluster.name}:`);
+          enrichedCluster.dependencies.forEach(dep => {
+            console.log(`  - ${dep.type}: ${dep.name} in namespace ${dep.namespace} (${dep.status})`);
+          });
+        } else {
+          console.log(`No dependencies found for cluster ${cluster.name}`);
+        }
+        
+        enrichedClusters.push(enrichedCluster);
+        
+        // Collect namespaces
+        if (enrichedCluster.namespacesCollection && Array.isArray(enrichedCluster.namespacesCollection)) {
+          allNamespaces.push(...enrichedCluster.namespacesCollection);
+        }
+      } catch (error) {
+        console.error(`Error enriching cluster ${cluster.name}:`, error);
+        // If enrichment fails, add the original cluster data
+        enrichedClusters.push(cluster);
       }
     }
     
