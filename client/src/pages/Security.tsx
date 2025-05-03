@@ -1,4 +1,4 @@
-import Sidebar from "@/components/layout/Sidebar";
+// Sidebar is now managed by App.tsx
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ShieldCheck, ShieldAlert, Lock, Key } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -18,8 +18,6 @@ export default function Security() {
   
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
-      <Sidebar />
-      
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm">

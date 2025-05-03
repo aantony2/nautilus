@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import Sidebar from "@/components/layout/Sidebar";
+// Sidebar is now managed by App.tsx
 import ServiceHealth from "@/components/dashboard/ServiceHealth";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,8 +26,6 @@ export default function Services() {
   
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
-      <Sidebar />
-      
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
