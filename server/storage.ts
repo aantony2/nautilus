@@ -265,6 +265,7 @@ export class DatabaseStorage implements IStorage {
       },
       topConsumers: [
         {
+          id: "api-gateway",
           name: "api-gateway",
           cluster: "gke-prod-cluster1",
           resources: {
@@ -273,6 +274,7 @@ export class DatabaseStorage implements IStorage {
           }
         },
         {
+          id: "elasticsearch",
           name: "elasticsearch",
           cluster: "gke-prod-cluster1",
           resources: {
@@ -281,6 +283,7 @@ export class DatabaseStorage implements IStorage {
           }
         },
         {
+          id: "postgres-master",
           name: "postgres-master",
           cluster: "aks-prod-eastus",
           resources: {

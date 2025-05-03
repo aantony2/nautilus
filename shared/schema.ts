@@ -196,6 +196,7 @@ export interface WorkloadData {
     };
   };
   topConsumers: Array<{
+    id?: string;
     name: string;
     cluster: string;
     resources: {

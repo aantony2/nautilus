@@ -1,16 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { useLocation } from "wouter";
 // Sidebar is now managed by App.tsx
 import WorkloadStatus from "@/components/dashboard/WorkloadStatus";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, Search } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { RefreshCw, Search, ExternalLink, Server, Database } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { WorkloadData } from "@shared/schema";
 
 export default function Workloads() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   
   const { data: workloads, isLoading, refetch } = useQuery<WorkloadData>({
@@ -96,27 +101,135 @@ export default function Workloads() {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-slate-800 rounded-lg shadow p-4">
-                <h2 className="text-lg font-semibold mb-4">Deployments</h2>
-                {isLoading ? (
-                  <Skeleton className="h-40 w-full" />
-                ) : (
-                  <div className="text-center text-slate-400 py-10">
-                    Deployment details will be expanded in future updates
-                  </div>
-                )}
-              </div>
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Server className="mr-2 h-5 w-5" />
+                      Deployments
+                    </div>
+                    <Badge className="ml-2">
+                      {workloads?.summary.deployments.reduce((sum, item) => sum + item.total, 0) || 0}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>Kubernetes deployment workloads</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <Skeleton className="h-48 w-full" />
+                  ) : (
+                    <div className="rounded-md border border-slate-700">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-slate-700 hover:bg-slate-700">
+                            <TableHead className="w-[50%]">Name</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Cluster</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {/* Example deployment rows */}
+                          {[
+                            { id: 'nginx-deployment', name: 'nginx-deployment', status: 'Running', cluster: 'gke-prod-cluster1' },
+                            { id: 'frontend-app', name: 'frontend-app', status: 'Running', cluster: 'gke-prod-cluster1' },
+                            { id: 'backend-api', name: 'backend-api', status: 'Warning', cluster: 'aks-dev-cluster1' }
+                          ].map((deployment) => (
+                            <TableRow key={deployment.id} className="border-slate-700 hover:bg-slate-700">
+                              <TableCell className="font-medium">{deployment.name}</TableCell>
+                              <TableCell>
+                                <Badge variant={
+                                  deployment.status === 'Running' ? 'secondary' : 
+                                  deployment.status === 'Warning' ? 'default' : 
+                                  'destructive'
+                                }>
+                                  {deployment.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{deployment.cluster}</TableCell>
+                              <TableCell className="text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setLocation(`/workloads/${deployment.id}`)}
+                                >
+                                  <ExternalLink size={16} className="mr-1" />
+                                  Details
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
               
-              <div className="bg-slate-800 rounded-lg shadow p-4">
-                <h2 className="text-lg font-semibold mb-4">StatefulSets</h2>
-                {isLoading ? (
-                  <Skeleton className="h-40 w-full" />
-                ) : (
-                  <div className="text-center text-slate-400 py-10">
-                    StatefulSet details will be expanded in future updates
-                  </div>
-                )}
-              </div>
+              <Card className="bg-slate-800 border-slate-700">
+                <CardHeader className="pb-2">
+                  <CardTitle className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Database className="mr-2 h-5 w-5" />
+                      StatefulSets
+                    </div>
+                    <Badge className="ml-2">
+                      {workloads?.summary.statefulSets.reduce((sum, item) => sum + item.total, 0) || 0}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription>Stateful application workloads</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <Skeleton className="h-48 w-full" />
+                  ) : (
+                    <div className="rounded-md border border-slate-700">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="border-slate-700 hover:bg-slate-700">
+                            <TableHead className="w-[50%]">Name</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Cluster</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {/* Example statefulset rows */}
+                          {[
+                            { id: 'mongodb', name: 'mongodb', status: 'Running', cluster: 'gke-prod-cluster1' },
+                            { id: 'postgresql', name: 'postgresql', status: 'Running', cluster: 'gke-prod-cluster1' },
+                            { id: 'kafka', name: 'kafka', status: 'Error', cluster: 'aks-dev-cluster1' }
+                          ].map((statefulset) => (
+                            <TableRow key={statefulset.id} className="border-slate-700 hover:bg-slate-700">
+                              <TableCell className="font-medium">{statefulset.name}</TableCell>
+                              <TableCell>
+                                <Badge variant={
+                                  statefulset.status === 'Running' ? 'secondary' : 
+                                  statefulset.status === 'Warning' ? 'default' : 
+                                  'destructive'
+                                }>
+                                  {statefulset.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{statefulset.cluster}</TableCell>
+                              <TableCell className="text-right">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => setLocation(`/workloads/${statefulset.id}`)}
+                                >
+                                  <ExternalLink size={16} className="mr-1" />
+                                  Details
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </main>
