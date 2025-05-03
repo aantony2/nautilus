@@ -265,12 +265,12 @@ export default function Namespaces() {
                       
                       <Button 
                         variant="ghost" 
+                        size="icon"
                         onClick={exportToCSV}
                         title="Export to CSV"
-                        className="flex items-center h-9 px-3 text-slate-400 hover:text-white"
+                        className="text-slate-400 hover:text-white h-9 w-9"
                       >
-                        <FileText className="h-4 w-4 mr-2" />
-                        <span>Export</span>
+                        <FileDown className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
