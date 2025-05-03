@@ -8,7 +8,9 @@ import {
   updateDatabaseSettings, 
   testDatabaseConnection,
   getAppSettings,
-  updateAppSettings
+  updateAppSettings,
+  getAuthSettings,
+  updateAuthSettings
 } from "./settings";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -150,6 +152,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // App settings routes
   app.get('/api/settings/app', getAppSettings);
   app.post('/api/settings/app', updateAppSettings);
+  
+  // Authentication settings routes
+  app.get('/api/settings/auth', getAuthSettings);
+  app.post('/api/settings/auth', updateAuthSettings);
 
   // Create HTTP server
   const httpServer = createServer(app);
