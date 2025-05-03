@@ -20,6 +20,7 @@ export type User = typeof users.$inferSelect;
 // Kubernetes Clusters
 export const clusters = pgTable("clusters", {
   id: serial("id").primaryKey(),
+  clusterId: text("cluster_id").notNull().unique(), // External ID (e.g., "gke-prod-cluster1")
   name: text("name").notNull(),
   provider: text("provider").notNull(), // GKE or AKS
   version: text("version").notNull(),
@@ -35,6 +36,7 @@ export const clusters = pgTable("clusters", {
   deployments: integer("deployments").notNull(),
   ingresses: integer("ingresses").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // Store complex data like events and nodes in a JSON field
   metadata: jsonb("metadata"),
 });
 

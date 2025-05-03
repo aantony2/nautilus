@@ -7,8 +7,11 @@ import {
   ServiceHealthData,
   EventData,
   WorkloadData,
-  ClusterMetrics
+  ClusterMetrics,
+  clusters
 } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 // Interface for storage methods
 export interface IStorage {
@@ -25,73 +28,141 @@ export interface IStorage {
   getWorkloadStatus(): Promise<WorkloadData>;
 }
 
-// In-memory implementation of storage
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private clusters: Map<string, ClusterData>;
-  currentId: number;
-
-  constructor() {
-    this.users = new Map();
-    this.clusters = new Map();
-    this.currentId = 1;
-    
-    // Initialize with demo data
-    this.initializeDemoData();
-  }
-
-  // User methods
+// Database implementation of storage
+export class DatabaseStorage implements IStorage {
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.currentId++;
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
   }
 
   // Dashboard data methods
   async getOverviewStats(): Promise<OverviewStatsData> {
-    // In a real app, this would calculate based on actual data
+    // Calculate stats based on cluster data in the database
+    const clusterData = await this.getClusters();
+    
+    const gkeClusters = clusterData.filter(c => c.provider === 'GKE').length;
+    const aksClusters = clusterData.filter(c => c.provider === 'AKS').length;
+    
+    let totalNodes = 0;
+    let totalPods = 0;
+    let runningPods = 0;
+    let totalNamespaces = 0;
+    
+    for (const cluster of clusterData) {
+      totalNodes += cluster.nodesTotal;
+      totalPods += cluster.podsTotal;
+      runningPods += cluster.podsRunning;
+      totalNamespaces += cluster.namespaces;
+    }
+    
     return {
-      totalClusters: 12,
-      clustersChange: 2,
-      gkeClusters: 8,
-      aksClusters: 4,
+      totalClusters: clusterData.length,
+      clustersChange: 0, // Would need historical data to calculate change
+      gkeClusters,
+      aksClusters,
       
-      totalNodes: 76,
-      nodesChange: 5,
+      totalNodes,
+      nodesChange: 0,
       
-      totalPods: 1248,
-      podsChange: 32,
-      runningPods: 1214,
-      pendingPods: 24,
-      failedPods: 10,
+      totalPods,
+      podsChange: 0,
+      runningPods,
+      pendingPods: totalPods - runningPods, // Simplified
+      failedPods: 0, // Would need more detailed data
       
-      totalNamespaces: 54,
-      namespacesChange: 3,
-      systemNamespaces: 18,
-      userNamespaces: 36
+      totalNamespaces,
+      namespacesChange: 0,
+      systemNamespaces: Math.round(totalNamespaces * 0.3), // Approximation
+      userNamespaces: Math.round(totalNamespaces * 0.7) // Approximation
     };
   }
 
   async getClusters(): Promise<ClusterData[]> {
-    return Array.from(this.clusters.values());
+    try {
+      const dbClusters = await db.select().from(clusters);
+      
+      // Convert DB clusters to ClusterData format
+      return dbClusters.map(cluster => {
+        const metadata = cluster.metadata as any || {}; // Type assertion for metadata
+        return {
+          id: cluster.cluster_id as string, // Use the column name from the DB
+          name: cluster.name,
+          provider: cluster.provider,
+          version: cluster.version,
+          versionStatus: cluster.version_status, // Use the column name from the DB
+          region: cluster.region,
+          status: cluster.status,
+          nodesTotal: cluster.nodes_total, // Use the column name from the DB
+          nodesReady: cluster.nodes_ready, // Use the column name from the DB
+          podsTotal: cluster.pods_total, // Use the column name from the DB
+          podsRunning: cluster.pods_running, // Use the column name from the DB
+          namespaces: cluster.namespaces,
+          services: cluster.services,
+          deployments: cluster.deployments,
+          ingresses: cluster.ingresses,
+          createdAt: cluster.created_at.toISOString(), // Use the column name from the DB
+          // Handle the metadata JSON field which can contain events and nodes
+          events: metadata.events || [],
+          nodes: metadata.nodes || []
+        };
+      });
+    } catch (error) {
+      console.error("Error fetching clusters from database:", error);
+      
+      // If no data exists yet, return empty array
+      return [];
+    }
   }
 
   async getClusterById(id: string): Promise<ClusterData | undefined> {
-    return this.clusters.get(id);
+    try {
+      const [cluster] = await db.select().from(clusters).where(eq(clusters.cluster_id, id));
+      
+      if (!cluster) return undefined;
+      
+      const metadata = cluster.metadata as any || {}; // Type assertion for metadata
+      
+      return {
+        id: cluster.cluster_id as string,
+        name: cluster.name,
+        provider: cluster.provider,
+        version: cluster.version,
+        versionStatus: cluster.version_status,
+        region: cluster.region,
+        status: cluster.status,
+        nodesTotal: cluster.nodes_total,
+        nodesReady: cluster.nodes_ready,
+        podsTotal: cluster.pods_total,
+        podsRunning: cluster.pods_running,
+        namespaces: cluster.namespaces,
+        services: cluster.services,
+        deployments: cluster.deployments,
+        ingresses: cluster.ingresses,
+        createdAt: cluster.created_at.toISOString(),
+        events: metadata.events || [],
+        nodes: metadata.nodes || []
+      };
+    } catch (error) {
+      console.error(`Error fetching cluster with ID ${id} from database:`, error);
+      return undefined;
+    }
   }
 
   async getServiceHealth(): Promise<ServiceHealthData[]> {
+    // For now, return static data as this would typically come from a service mesh or monitoring system
     return [
       {
         name: "Istio Service Mesh",
@@ -133,6 +204,8 @@ export class MemStorage implements IStorage {
   }
 
   async getRecentEvents(): Promise<EventData[]> {
+    // For now, return static event data
+    // In a real implementation, this might come from a dedicated events table
     return [
       {
         type: "success",
@@ -162,6 +235,7 @@ export class MemStorage implements IStorage {
   }
 
   async getWorkloadStatus(): Promise<WorkloadData> {
+    // For now, return static workload data
     return {
       summary: {
         deployments: [
@@ -208,117 +282,133 @@ export class MemStorage implements IStorage {
     };
   }
 
-  // Private method to initialize demo data
-  private initializeDemoData() {
-    // Demo clusters
-    this.clusters.set("gke-prod-cluster1", {
-      id: "gke-prod-cluster1",
-      name: "gke-prod-cluster1",
-      provider: "GKE",
-      version: "1.26.5-gke.1200",
-      versionStatus: "Up to date",
-      region: "us-central1",
-      status: "Healthy",
-      nodesTotal: 12,
-      nodesReady: 12,
-      podsTotal: 450,
-      podsRunning: 324,
-      namespaces: 14,
-      services: 28,
-      deployments: 32,
-      ingresses: 8,
-      createdAt: "2023-03-15T08:00:00Z",
-      events: [
-        {
-          timestamp: "2023-07-20T14:30:00Z",
-          severity: "info",
-          message: "Autoscaling triggered: scaling up to 12 nodes",
-          source: "cluster-autoscaler"
-        },
-        {
-          timestamp: "2023-07-20T13:15:00Z",
-          severity: "warning",
-          message: "High CPU usage detected in namespace: backend",
-          source: "monitoring-controller"
+  // Helper method to initialize database with sample data if needed
+  async initializeWithSampleData() {
+    // Check if we have any clusters already
+    const existingClusters = await db.select().from(clusters);
+    
+    if (existingClusters.length > 0) {
+      console.log("Database already contains cluster data, skipping initialization");
+      return;
+    }
+    
+    console.log("Initializing database with sample cluster data");
+    
+    // Sample data to insert
+    const sampleClusters = [
+      {
+        clusterId: "gke-prod-cluster1",
+        name: "gke-prod-cluster1",
+        provider: "GKE",
+        version: "1.26.5-gke.1200",
+        versionStatus: "Up to date",
+        region: "us-central1",
+        status: "Healthy",
+        nodesTotal: 12,
+        nodesReady: 12,
+        podsTotal: 450,
+        podsRunning: 324,
+        namespaces: 14,
+        services: 28,
+        deployments: 32,
+        ingresses: 8,
+        metadata: {
+          events: [
+            {
+              timestamp: "2023-07-20T14:30:00Z",
+              severity: "info",
+              message: "Autoscaling triggered: scaling up to 12 nodes",
+              source: "cluster-autoscaler"
+            },
+            {
+              timestamp: "2023-07-20T13:15:00Z",
+              severity: "warning",
+              message: "High CPU usage detected in namespace: backend",
+              source: "monitoring-controller"
+            }
+          ],
+          nodes: [
+            {
+              name: "gke-prod-cluster1-default-pool-12345",
+              status: "Ready",
+              role: "Worker",
+              cpu: "4 cores / 75%",
+              memory: "16GB / 68%",
+              pods: "29/30"
+            },
+            {
+              name: "gke-prod-cluster1-default-pool-67890",
+              status: "Ready",
+              role: "Worker",
+              cpu: "4 cores / 62%",
+              memory: "16GB / 55%",
+              pods: "26/30"
+            }
+          ]
         }
-      ],
-      nodes: [
-        {
-          name: "gke-prod-cluster1-default-pool-12345",
-          status: "Ready",
-          role: "Worker",
-          cpu: "4 cores / 75%",
-          memory: "16GB / 68%",
-          pods: "29/30"
-        },
-        {
-          name: "gke-prod-cluster1-default-pool-67890",
-          status: "Ready",
-          role: "Worker",
-          cpu: "4 cores / 62%",
-          memory: "16GB / 55%",
-          pods: "26/30"
-        }
-      ]
-    });
-
-    this.clusters.set("gke-stage-cluster1", {
-      id: "gke-stage-cluster1",
-      name: "gke-stage-cluster1",
-      provider: "GKE",
-      version: "1.25.8-gke.500",
-      versionStatus: "Update available",
-      region: "us-west1",
-      status: "Healthy",
-      nodesTotal: 8,
-      nodesReady: 8,
-      podsTotal: 300,
-      podsRunning: 210,
-      namespaces: 10,
-      services: 18,
-      deployments: 24,
-      ingresses: 6,
-      createdAt: "2023-04-10T10:30:00Z"
-    });
-
-    this.clusters.set("aks-prod-eastus", {
-      id: "aks-prod-eastus",
-      name: "aks-prod-eastus",
-      provider: "AKS",
-      version: "1.25.6",
-      versionStatus: "Update available",
-      region: "eastus",
-      status: "Warning",
-      nodesTotal: 6,
-      nodesReady: 6,
-      podsTotal: 250,
-      podsRunning: 178,
-      namespaces: 8,
-      services: 14,
-      deployments: 18,
-      ingresses: 4,
-      createdAt: "2023-02-22T09:15:00Z"
-    });
-
-    this.clusters.set("aks-dev-westeu", {
-      id: "aks-dev-westeu",
-      name: "aks-dev-westeu",
-      provider: "AKS",
-      version: "1.26.0",
-      versionStatus: "Up to date",
-      region: "westeurope",
-      status: "Critical",
-      nodesTotal: 4,
-      nodesReady: 3,
-      podsTotal: 120,
-      podsRunning: 86,
-      namespaces: 6,
-      services: 10,
-      deployments: 12,
-      ingresses: 2,
-      createdAt: "2023-05-05T11:45:00Z"
-    });
+      },
+      {
+        clusterId: "gke-stage-cluster1",
+        name: "gke-stage-cluster1",
+        provider: "GKE",
+        version: "1.25.8-gke.500",
+        versionStatus: "Update available",
+        region: "us-west1",
+        status: "Healthy",
+        nodesTotal: 8,
+        nodesReady: 8,
+        podsTotal: 300,
+        podsRunning: 210,
+        namespaces: 10,
+        services: 18,
+        deployments: 24,
+        ingresses: 6
+      },
+      {
+        clusterId: "aks-prod-eastus",
+        name: "aks-prod-eastus",
+        provider: "AKS",
+        version: "1.25.6",
+        versionStatus: "Update available",
+        region: "eastus",
+        status: "Warning",
+        nodesTotal: 6,
+        nodesReady: 6,
+        podsTotal: 250,
+        podsRunning: 178,
+        namespaces: 8,
+        services: 14,
+        deployments: 18,
+        ingresses: 4
+      },
+      {
+        clusterId: "aks-dev-westeu",
+        name: "aks-dev-westeu",
+        provider: "AKS",
+        version: "1.26.0",
+        versionStatus: "Up to date",
+        region: "westeurope",
+        status: "Critical",
+        nodesTotal: 4,
+        nodesReady: 3,
+        podsTotal: 120,
+        podsRunning: 86,
+        namespaces: 6,
+        services: 10,
+        deployments: 12,
+        ingresses: 2
+      }
+    ];
+    
+    try {
+      // Insert sample data
+      await db.insert(clusters).values(sampleClusters);
+      console.log("Sample cluster data inserted successfully");
+    } catch (error) {
+      console.error("Error inserting sample cluster data:", error);
+    }
   }
 }
 
-export const storage = new MemStorage();
+// Create storage instance
+export const storage = new DatabaseStorage();
