@@ -437,13 +437,19 @@ export class DatabaseStorage implements IStorage {
   async initializeWithSampleData() {
     // Check if we have any clusters already
     const existingClusters = await db.select().from(clusters);
+    const existingNamespaces = await db.select().from(namespaces);
     
-    if (existingClusters.length > 0) {
-      console.log("Database already contains cluster data, skipping initialization");
+    let skipClusters = existingClusters.length > 0;
+    let skipNamespaces = existingNamespaces.length > 0;
+    
+    if (skipClusters && skipNamespaces) {
+      console.log("Database already contains cluster and namespace data, skipping initialization");
       return;
     }
     
-    console.log("Initializing database with sample cluster data");
+    if (!skipClusters) {
+      console.log("Initializing database with sample cluster data");
+    }
     
     // Sample data to insert
     const sampleClusters = [
@@ -597,12 +603,16 @@ export class DatabaseStorage implements IStorage {
     ];
     
     try {
-      // Insert sample data
-      await db.insert(clusters).values(sampleClusters);
-      console.log("Sample cluster data inserted successfully");
+      // Insert sample cluster data if needed
+      if (!skipClusters) {
+        await db.insert(clusters).values(sampleClusters);
+        console.log("Sample cluster data inserted successfully");
+      }
       
-      // Initialize sample namespaces
-      const sampleNamespaces = [
+      // Initialize sample namespaces if needed
+      if (!skipNamespaces) {
+        console.log("Initializing database with sample namespace data");
+        const sampleNamespaces = [
         // gke-prod-cluster1 namespaces
         {
           clusterId: "gke-prod-cluster1",
@@ -777,8 +787,9 @@ export class DatabaseStorage implements IStorage {
         }
       ];
       
-      await db.insert(namespaces).values(sampleNamespaces);
-      console.log("Sample namespace data inserted successfully");
+        await db.insert(namespaces).values(sampleNamespaces);
+        console.log("Sample namespace data inserted successfully");
+      }
     } catch (error) {
       console.error("Error inserting sample data:", error);
     }
