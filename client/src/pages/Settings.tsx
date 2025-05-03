@@ -4,6 +4,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Database, 
@@ -13,11 +21,14 @@ import {
   CircleCheck,
   Palette,
   Text,
-  Image
+  Image,
+  KeyRound,
+  Lock
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
+import { useAppSettings } from "@/hooks/use-app-settings";
 
 // Define the database settings type
 interface DatabaseSettings {
@@ -37,6 +48,16 @@ interface AppSettings {
   logoSvgCode?: string;
   primaryColor?: string;
   accentColor?: string;
+}
+
+// Define authentication settings type
+interface AuthSettings {
+  enabled: boolean;
+  provider: 'okta' | 'none';
+  oktaIssuer?: string;
+  oktaClientId?: string;
+  redirectUri?: string;
+  postLogoutRedirectUri?: string;
 }
 
 // Define test connection result type
@@ -228,6 +249,97 @@ export default function Settings() {
   
   const saveAppSettings = () => {
     saveAppSettingsMutation.mutate();
+  };
+  
+  // Get authentication settings
+  const { data: authSettings } = useQuery<AuthSettings>({
+    queryKey: ['/api/settings/auth'],
+  });
+  
+  // Calculate if this is production environment
+  const isProduction = window.location.hostname !== 'localhost' && 
+                      !window.location.hostname.includes('replit');
+  
+  // Auth settings form state
+  const [authFormData, setAuthFormData] = useState<AuthSettings>({
+    enabled: false,
+    provider: 'none',
+    oktaIssuer: '',
+    oktaClientId: '',
+    redirectUri: `${window.location.origin}/implicit/callback`,
+    postLogoutRedirectUri: window.location.origin
+  });
+  
+  // Update auth form when settings are loaded
+  useEffect(() => {
+    if (authSettings) {
+      setAuthFormData({
+        enabled: authSettings.enabled || false,
+        provider: authSettings.provider || 'none',
+        oktaIssuer: authSettings.oktaIssuer || '',
+        oktaClientId: authSettings.oktaClientId || '',
+        redirectUri: authSettings.redirectUri || `${window.location.origin}/implicit/callback`,
+        postLogoutRedirectUri: authSettings.postLogoutRedirectUri || window.location.origin
+      });
+    }
+  }, [authSettings]);
+  
+  // Handle auth form input changes
+  const handleAuthInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setAuthFormData({
+      ...authFormData,
+      [name]: type === 'checkbox' ? checked : value,
+    });
+  };
+  
+  // Handle select input changes
+  const handleAuthSelectChange = (value: string, name: string) => {
+    setAuthFormData({
+      ...authFormData,
+      [name]: value,
+    });
+  };
+  
+  // Handle auth toggle
+  const handleAuthToggle = (checked: boolean) => {
+    setAuthFormData({
+      ...authFormData,
+      enabled: checked,
+    });
+  };
+  
+  // Save auth settings
+  const saveAuthSettingsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest<{ success: boolean; message: string; settings: AuthSettings }>('/api/settings/auth', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(authFormData),
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Authentication settings saved",
+        description: data.message || "Authentication settings have been updated.",
+      });
+      
+      // Invalidate auth settings query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/auth'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error saving settings",
+        description: "An error occurred while saving the authentication settings.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const saveAuthSettings = () => {
+    saveAuthSettingsMutation.mutate();
   };
 
   return (
@@ -527,6 +639,151 @@ export default function Settings() {
                             </>
                           )}
                         </Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-slate-800 border-slate-700 shadow-md mt-6">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <Lock className="h-5 w-5 mr-2 text-primary" />
+                        Authentication
+                      </CardTitle>
+                      <CardDescription>
+                        Configure single sign-on (SSO) authentication for production
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="auth-enabled">Enable Authentication</Label>
+                        <p className="text-sm text-slate-400">
+                          {isProduction ? 
+                            "Authentication will be enforced for all users" : 
+                            "Authentication will be enabled in production only"
+                          }
+                        </p>
+                      </div>
+                      <Switch
+                        id="auth-enabled"
+                        checked={authFormData.enabled}
+                        onCheckedChange={handleAuthToggle}
+                      />
+                    </div>
+                    
+                    <div className="pt-2 border-t border-slate-700">
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="auth-provider">Authentication Provider</Label>
+                          <Select
+                            value={authFormData.provider}
+                            onValueChange={(value) => handleAuthSelectChange(value, 'provider')}
+                            disabled={!authFormData.enabled}
+                          >
+                            <SelectTrigger id="auth-provider" className="bg-slate-700 border-slate-600 text-slate-100">
+                              <SelectValue placeholder="Select a provider" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-slate-800 border-slate-700 text-slate-100">
+                              <SelectItem value="none">None</SelectItem>
+                              <SelectItem value="okta">Okta SSO</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <p className="text-xs text-slate-400">
+                            Select the authentication provider to use
+                          </p>
+                        </div>
+                        
+                        {authFormData.provider === 'okta' && (
+                          <>
+                            <div className="space-y-2">
+                              <Label htmlFor="oktaIssuer">Okta Issuer URL</Label>
+                              <Input
+                                id="oktaIssuer"
+                                name="oktaIssuer"
+                                placeholder="https://dev-123456.okta.com/oauth2/default"
+                                value={authFormData.oktaIssuer}
+                                onChange={handleAuthInputChange}
+                                className="bg-slate-700 border-slate-600 text-slate-100"
+                                disabled={!authFormData.enabled}
+                              />
+                              <p className="text-xs text-slate-400">
+                                The issuer URL from your Okta application
+                              </p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="oktaClientId">Okta Client ID</Label>
+                              <Input
+                                id="oktaClientId"
+                                name="oktaClientId"
+                                placeholder="0oa1234567890abcDEF"
+                                value={authFormData.oktaClientId}
+                                onChange={handleAuthInputChange}
+                                className="bg-slate-700 border-slate-600 text-slate-100"
+                                disabled={!authFormData.enabled}
+                              />
+                              <p className="text-xs text-slate-400">
+                                The client ID from your Okta application
+                              </p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="redirectUri">Redirect URI</Label>
+                              <Input
+                                id="redirectUri"
+                                name="redirectUri"
+                                value={authFormData.redirectUri}
+                                onChange={handleAuthInputChange}
+                                className="bg-slate-700 border-slate-600 text-slate-100"
+                                disabled={!authFormData.enabled}
+                              />
+                              <p className="text-xs text-slate-400">
+                                The callback URL after successful authentication
+                              </p>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label htmlFor="postLogoutRedirectUri">Post Logout Redirect URI</Label>
+                              <Input
+                                id="postLogoutRedirectUri"
+                                name="postLogoutRedirectUri"
+                                value={authFormData.postLogoutRedirectUri}
+                                onChange={handleAuthInputChange}
+                                className="bg-slate-700 border-slate-600 text-slate-100"
+                                disabled={!authFormData.enabled}
+                              />
+                              <p className="text-xs text-slate-400">
+                                The URL to redirect to after logout
+                              </p>
+                            </div>
+                          </>
+                        )}
+                        
+                        <div className="flex justify-end pt-4">
+                          <Button
+                            onClick={saveAuthSettings}
+                            disabled={saveAuthSettingsMutation.isPending || !authFormData.enabled}
+                          >
+                            {saveAuthSettingsMutation.isPending ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-2" />
+                                Save Authentication Settings
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
