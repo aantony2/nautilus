@@ -29,6 +29,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Textarea } from "@/components/ui/textarea";
 import { useAppSettings } from "@/hooks/use-app-settings";
+import { ThemeGenerator } from "@/components/theme/ThemeGenerator";
 
 // Define the database settings type
 interface DatabaseSettings {
@@ -368,8 +369,30 @@ export default function Settings() {
           <Tabs defaultValue="general">
             <TabsList className="mb-6">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="appearance">
+              <Card className="bg-slate-800 border-slate-700 shadow-md">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <Palette className="h-5 w-5 mr-2 text-primary" />
+                        Theme Customization
+                      </CardTitle>
+                      <CardDescription>
+                        Customize the application color palette and appearance
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <ThemeGenerator />
+                </CardContent>
+              </Card>
+            </TabsContent>
             
             <TabsContent value="general">
               <Card className="bg-slate-800 border-slate-700 shadow-md">
