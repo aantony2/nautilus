@@ -10,7 +10,8 @@ import {
   Server,
   CheckCircle,
   AlertTriangle,
-  MessagesSquare
+  MessagesSquare,
+  FileDown
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
