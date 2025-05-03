@@ -208,10 +208,7 @@ export default function Namespaces() {
           <div className="space-y-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader className="pb-3">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <CardTitle className="text-xl text-white">
-                    All Namespaces
-                  </CardTitle>
+                <div className="flex justify-end">
                   <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                     <div className="relative w-64 mr-2">
                       <Input
