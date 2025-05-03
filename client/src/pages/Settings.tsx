@@ -5,9 +5,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Database, Save, RefreshCw, Settings as SettingsIcon, CircleCheck } from "lucide-react";
+import { 
+  Database, 
+  Save, 
+  RefreshCw, 
+  Settings as SettingsIcon, 
+  CircleCheck,
+  Palette,
+  Text,
+  Image
+} from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Textarea } from "@/components/ui/textarea";
 
 // Define the database settings type
 interface DatabaseSettings {
@@ -18,6 +28,15 @@ interface DatabaseSettings {
   database: string;
   ssl: boolean;
   connectionTimeout: string;
+}
+
+// Define app settings type
+interface AppSettings {
+  productName: string;
+  logoUrl?: string;
+  logoSvgCode?: string;
+  primaryColor?: string;
+  accentColor?: string;
 }
 
 // Define test connection result type
@@ -139,6 +158,76 @@ export default function Settings() {
 
   const saveSettings = () => {
     saveSettingsMutation.mutate();
+  };
+  
+  // Get app settings
+  const { data: appSettings } = useQuery<AppSettings>({
+    queryKey: ['/api/settings/app'],
+  });
+  
+  // App settings form state
+  const [appFormData, setAppFormData] = useState<AppSettings>({
+    productName: "Nautilus",
+    logoSvgCode: "",
+    primaryColor: "#0ea5e9",
+    accentColor: "#6366f1"
+  });
+  
+  // Update app form when settings are loaded
+  useEffect(() => {
+    if (appSettings) {
+      setAppFormData({
+        productName: appSettings.productName || "Nautilus",
+        logoUrl: appSettings.logoUrl,
+        logoSvgCode: appSettings.logoSvgCode || "",
+        primaryColor: appSettings.primaryColor || "#0ea5e9",
+        accentColor: appSettings.accentColor || "#6366f1"
+      });
+    }
+  }, [appSettings]);
+  
+  // Update app form fields
+  const handleAppInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setAppFormData({
+      ...appFormData,
+      [name]: value,
+    });
+  };
+  
+  // Save app settings
+  const saveAppSettingsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest<{ success: boolean; message: string }>('/api/settings/app', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(appFormData),
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Settings saved",
+        description: data.message || "Application settings have been updated.",
+      });
+      
+      // Reload the page to apply new settings
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error saving settings",
+        description: "An error occurred while saving the application settings.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const saveAppSettings = () => {
+    saveAppSettingsMutation.mutate();
   };
 
   return (

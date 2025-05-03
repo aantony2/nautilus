@@ -3,7 +3,13 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getGkeData, getAksData, getClusterMetrics } from "./services/kubernetes";
 import { getCluster, getResourceUtilization } from "./services/kubernetes";
-import { getDatabaseSettings, updateDatabaseSettings, testDatabaseConnection } from "./settings";
+import { 
+  getDatabaseSettings, 
+  updateDatabaseSettings, 
+  testDatabaseConnection,
+  getAppSettings,
+  updateAppSettings
+} from "./settings";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
@@ -140,6 +146,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/settings/database', getDatabaseSettings);
   app.post('/api/settings/database', updateDatabaseSettings);
   app.post('/api/settings/database/test', testDatabaseConnection);
+  
+  // App settings routes
+  app.get('/api/settings/app', getAppSettings);
+  app.post('/api/settings/app', updateAppSettings);
 
   // Create HTTP server
   const httpServer = createServer(app);
