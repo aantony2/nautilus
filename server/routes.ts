@@ -93,6 +93,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Namespace routes
+  app.get('/api/namespaces', async (req, res) => {
+    try {
+      const namespaces = await storage.getNamespaces();
+      res.json(namespaces);
+    } catch (error) {
+      console.error('Error fetching namespaces:', error);
+      res.status(500).json({ message: 'Failed to fetch namespace data' });
+    }
+  });
+
+  app.get('/api/clusters/:clusterId/namespaces', async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const namespaces = await storage.getNamespacesByCluster(clusterId);
+      res.json(namespaces);
+    } catch (error) {
+      console.error(`Error fetching namespaces for cluster ${req.params.clusterId}:`, error);
+      res.status(500).json({ message: 'Failed to fetch namespace data for this cluster' });
+    }
+  });
+
+  app.get('/api/namespaces/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid namespace ID' });
+      }
+
+      const namespace = await storage.getNamespaceById(id);
+      
+      if (!namespace) {
+        return res.status(404).json({ message: 'Namespace not found' });
+      }
+      
+      res.json(namespace);
+    } catch (error) {
+      console.error(`Error fetching namespace ${req.params.id}:`, error);
+      res.status(500).json({ message: 'Failed to fetch namespace data' });
+    }
+  });
+
   // Create HTTP server
   const httpServer = createServer(app);
 

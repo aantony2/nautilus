@@ -314,9 +314,17 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(clusters, eq(namespaces.clusterId, clusters.clusterId));
       
       return result.map(ns => ({
-        ...ns,
+        id: ns.id,
+        clusterId: ns.clusterId,
+        clusterName: ns.clusterName,
+        name: ns.name,
+        status: ns.status,
+        age: ns.age,
+        phase: ns.phase,
         labels: ns.labels as Record<string, string> || {},
         annotations: ns.annotations as Record<string, string> || {},
+        podCount: ns.podCount ?? 0, // Use nullish coalescing to ensure it's a number
+        resourceQuota: ns.resourceQuota ?? false, // Use nullish coalescing to ensure it's a boolean
         createdAt: ns.createdAt ? new Date(ns.createdAt).toISOString() : new Date().toISOString()
       }));
     } catch (error) {
@@ -346,9 +354,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(namespaces.clusterId, clusterId));
       
       return result.map(ns => ({
-        ...ns,
+        id: ns.id,
+        clusterId: ns.clusterId,
+        clusterName: ns.clusterName,
+        name: ns.name,
+        status: ns.status,
+        age: ns.age,
+        phase: ns.phase,
         labels: ns.labels as Record<string, string> || {},
         annotations: ns.annotations as Record<string, string> || {},
+        podCount: ns.podCount ?? 0,
+        resourceQuota: ns.resourceQuota ?? false,
         createdAt: ns.createdAt ? new Date(ns.createdAt).toISOString() : new Date().toISOString()
       }));
     } catch (error) {
@@ -380,9 +396,17 @@ export class DatabaseStorage implements IStorage {
       if (!result) return undefined;
       
       return {
-        ...result,
+        id: result.id,
+        clusterId: result.clusterId,
+        clusterName: result.clusterName,
+        name: result.name,
+        status: result.status,
+        age: result.age,
+        phase: result.phase,
         labels: result.labels as Record<string, string> || {},
         annotations: result.annotations as Record<string, string> || {},
+        podCount: result.podCount ?? 0,
+        resourceQuota: result.resourceQuota ?? false,
         createdAt: result.createdAt ? new Date(result.createdAt).toISOString() : new Date().toISOString()
       };
     } catch (error) {
