@@ -11,8 +11,13 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@aws-sdk/client-ec2": "^3.800.0",
+    "@aws-sdk/client-eks": "^3.799.0",
+    "@azure/arm-containerservice": "^21.6.0",
+    "@azure/identity": "^4.9.1",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
+    "@kubernetes/client-node": "^1.1.2",
     "@neondatabase/serverless": "^0.10.4",
     "@okta/okta-auth-js": "^7.12.1",
     "@okta/okta-react": "^6.10.0",
@@ -56,6 +61,7 @@
     "express": "^4.21.2",
     "express-session": "^1.18.1",
     "framer-motion": "^11.13.1",
+    "googleapis": "^148.0.0",
     "input-otp": "^1.4.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.453.0",

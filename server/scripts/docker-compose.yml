@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  cloud-data-updater:
+    build:
+      context: ../../
+      dockerfile: server/scripts/Dockerfile
+    restart: always
+    environment:
+      # Database connection
+      - DATABASE_URL=${DATABASE_URL}
+      
+      # Google Cloud credentials
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/secrets/google-credentials.json
+      - GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID}
+      
+      # Azure credentials
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID}
+      
+      # AWS credentials
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-us-west-2}
+      
+      # Log level
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      # Mount secrets directory
+      - ./secrets:/app/secrets:ro
+      # Mount logs directory
+      - ./logs:/var/log
+    # Health check to ensure the container is running correctly
+    healthcheck:
+      test: ["CMD", "ls", "/var/log/cron.log"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
