@@ -193,8 +193,9 @@ export default function Namespaces() {
         {/* Header with integrated search */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white mr-4">Namespaces</h1>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-semibold text-white">Namespaces</h1>
+              <p className="text-sm text-slate-400">View and manage all namespaces</p>
             </div>
             <div className="flex items-center space-x-3">
               <Button 

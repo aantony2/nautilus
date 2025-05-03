@@ -18,8 +18,9 @@ export default function Clusters() {
         {/* Header with integrated search */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white mr-4">Clusters</h1>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-semibold text-white">Clusters</h1>
+              <p className="text-sm text-slate-400">View and manage all nodes</p>
             </div>
           </div>
         </header>
