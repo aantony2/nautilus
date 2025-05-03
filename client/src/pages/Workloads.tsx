@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 // Sidebar is now managed by App.tsx
 import WorkloadStatus from "@/components/dashboard/WorkloadStatus";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { WorkloadData } from "@shared/schema";
 
 export default function Workloads() {
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
   
   const { data: workloads, isLoading, refetch } = useQuery<WorkloadData>({
     queryKey: ['/api/workloads'],
@@ -24,6 +26,17 @@ export default function Workloads() {
     });
   };
   
+  // Filter top consumers based on search query
+  const filteredWorkloads = workloads ? {
+    ...workloads,
+    topConsumers: searchQuery.trim() ? 
+      workloads.topConsumers.filter(consumer => 
+        consumer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        consumer.cluster.toLowerCase().includes(searchQuery.toLowerCase())
+      ) : 
+      workloads.topConsumers
+  } : undefined;
+  
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -33,13 +46,16 @@ export default function Workloads() {
             <div className="flex items-center">
               <h1 className="text-lg font-semibold text-white">Kubernetes Workloads</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+            <div className="flex items-center space-x-3">
+              <div className="relative rounded-md w-64">
                 <Input
+                  type="text"
                   placeholder="Search workloads..."
-                  className="bg-slate-700 border-slate-600 pl-8 text-slate-100 w-[250px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white pl-10"
                 />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
               </div>
               <Button
                 variant="ghost"
@@ -59,7 +75,7 @@ export default function Workloads() {
             {isLoading ? (
               <Skeleton className="h-80 w-full" />
             ) : (
-              <WorkloadStatus workloads={workloads ?? {
+              <WorkloadStatus workloads={filteredWorkloads ?? {
                 summary: {
                   deployments: [],
                   statefulSets: []
@@ -72,6 +88,11 @@ export default function Workloads() {
                 },
                 topConsumers: []
               }} />
+            )}
+            {!isLoading && filteredWorkloads?.topConsumers && (
+              <div className="text-xs text-slate-500 mt-2">
+                Showing {filteredWorkloads.topConsumers.length} of {workloads?.topConsumers.length || 0} top consumers
+              </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -1,19 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo } from "react";
 // Sidebar is now managed by App.tsx
 import ServiceHealth from "@/components/dashboard/ServiceHealth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, Globe, ExternalLink } from "lucide-react";
+import { RefreshCw, Globe, ExternalLink, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ServiceHealthData } from "@shared/schema";
 
 export default function Services() {
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState<string>("");
   
   const { data: services, isLoading, refetch } = useQuery<ServiceHealthData[]>({
     queryKey: ['/api/services'],
   });
+  
+  const filteredServices = useMemo(() => {
+    if (!services || !Array.isArray(services)) return [];
+    
+    if (!searchQuery) return services;
+    
+    const query = searchQuery.toLowerCase();
+    return services.filter(service => 
+      service.name.toLowerCase().includes(query) ||
+      service.status.toLowerCase().includes(query) ||
+      service.description.toLowerCase().includes(query)
+    );
+  }, [services, searchQuery]);
   
   const refreshData = () => {
     refetch();
@@ -33,7 +49,17 @@ export default function Services() {
             <div className="flex items-center">
               <h1 className="text-lg font-semibold text-white">Kubernetes Services</h1>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-3">
+              <div className="relative rounded-md w-64">
+                <Input
+                  type="text"
+                  placeholder="Search services..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white pl-10"
+                />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              </div>
               <Button
                 variant="ghost"
                 size="icon"
@@ -52,7 +78,12 @@ export default function Services() {
             {isLoading ? (
               <Skeleton className="h-96 w-full" />
             ) : (
-              <ServiceHealth services={services ?? []} />
+              <>
+                <ServiceHealth services={filteredServices} />
+                <div className="text-xs text-slate-500 mt-2">
+                  Showing {filteredServices.length} of {services?.length || 0} services
+                </div>
+              </>
             )}
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

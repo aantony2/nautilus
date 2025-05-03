@@ -10,7 +10,8 @@ import {
   Server,
   CheckCircle,
   AlertTriangle,
-  MessagesSquare
+  MessagesSquare,
+  RefreshCw
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,17 +40,20 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getQueryFn } from "@/lib/queryClient";
-import { NamespaceData } from "../../../shared/schema";
+import { NamespaceData } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Namespaces() {
   const [location, setLocation] = useLocation();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [clusterFilter, setClusterFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const { toast } = useToast();
 
   // Fetch namespaces data
-  const { data: namespaces, isLoading } = useQuery({
+  const { data: namespaces, isLoading, refetch } = useQuery({
     queryKey: ["/api/namespaces"],
     queryFn: getQueryFn({ on401: "throw" }),
   }) as { data: NamespaceData[] | undefined, isLoading: boolean };
@@ -138,11 +142,20 @@ export default function Namespaces() {
     exportObjectsToCsv(
       filteredNamespaces,
       headers,
-      keys as (keyof NamespaceData)[],
+      keys as unknown as (keyof NamespaceData)[],
       "kubernetes-namespaces",
       transform as (key: keyof NamespaceData, value: any) => string | number | boolean
     );
   }, [filteredNamespaces]);
+  
+  const refreshData = () => {
+    refetch();
+    
+    toast({
+      title: "Namespaces refreshed",
+      description: "Namespace data has been updated",
+    });
+  };
 
   // Get unique clusters for filtering
   const uniqueClusters = useMemo(() => {
@@ -165,277 +178,297 @@ export default function Namespaces() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex justify-center items-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-            <p className="mt-4 text-lg">Loading namespaces...</p>
-          </div>
+      <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
+            <div className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center">
+                <h1 className="text-lg font-semibold text-white">Kubernetes Namespaces</h1>
+              </div>
+            </div>
+          </header>
+          
+          <main className="flex-1 overflow-y-auto bg-slate-900 p-4">
+            <Skeleton className="h-96 w-full" />
+          </main>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-900 min-h-screen">
-      <div className="container mx-auto p-6">
-        <main className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-white">Namespaces</h1>
-              <p className="text-slate-400 mt-1">
-                View and manage Kubernetes namespaces across all clusters
-              </p>
+    <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3">
+            <div className="flex items-center">
+              <h1 className="text-lg font-semibold text-white">Kubernetes Namespaces</h1>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex items-center space-x-3">
+              <div className="relative rounded-md w-64">
+                <Input
+                  type="text"
+                  placeholder="Search namespaces..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-slate-700 border-slate-600 text-white pl-10"
+                />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              </div>
               <Button 
-                variant="secondary" 
+                variant="outline" 
+                size="sm"
                 onClick={exportToCSV}
                 disabled={filteredNamespaces.length === 0}
+                className="border-primary text-primary hover:bg-primary/10"
               >
-                <DownloadIcon className="h-4 w-4 mr-1" />
+                <DownloadIcon className="h-4 w-4 mr-2" />
                 Export CSV
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={refreshData}
+                disabled={isLoading}
+              >
+                <RefreshCw className="h-5 w-5" />
               </Button>
             </div>
           </div>
-
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader className="pb-3">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <CardTitle className="text-xl text-white">
-                  All Namespaces
-                </CardTitle>
-                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                  <div className="relative rounded-md w-full sm:w-64">
-                    <Input
-                      type="text"
-                      placeholder="Search namespaces..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="bg-slate-700 border-slate-600 text-white pl-10"
-                    />
-                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-[130px] bg-slate-700 border-slate-600 text-white">
-                        <div className="flex items-center">
-                          <Filter className="h-3.5 w-3.5 mr-2" />
-                          <SelectValue placeholder="Status" />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600 text-white">
-                        <SelectItem value="all">All Statuses</SelectItem>
-                        <SelectItem value="Active">Active</SelectItem>
-                        <SelectItem value="Terminating">Terminating</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select
-                      value={clusterFilter}
-                      onValueChange={setClusterFilter}
-                    >
-                      <SelectTrigger className="w-[130px] bg-slate-700 border-slate-600 text-white">
-                        <div className="flex items-center">
-                          <Server className="h-3.5 w-3.5 mr-2" />
-                          <SelectValue placeholder="Cluster" />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent className="bg-slate-700 border-slate-600 text-white">
-                        <SelectItem value="all">All Clusters</SelectItem>
-                        {uniqueClusters.map((cluster) => (
-                          <SelectItem key={cluster} value={cluster}>
-                            {cluster}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+        </header>
+        
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto bg-slate-900 p-4">
+          <div className="space-y-6">
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader className="pb-3">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <CardTitle className="text-xl text-white">
+                    All Namespaces
+                  </CardTitle>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    <div className="flex gap-2">
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger className="w-[130px] bg-slate-700 border-slate-600 text-white">
+                          <div className="flex items-center">
+                            <Filter className="h-3.5 w-3.5 mr-2" />
+                            <SelectValue placeholder="Status" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="Active">Active</SelectItem>
+                          <SelectItem value="Terminating">Terminating</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={clusterFilter}
+                        onValueChange={setClusterFilter}
+                      >
+                        <SelectTrigger className="w-[130px] bg-slate-700 border-slate-600 text-white">
+                          <div className="flex items-center">
+                            <Server className="h-3.5 w-3.5 mr-2" />
+                            <SelectValue placeholder="Cluster" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-700 border-slate-600 text-white">
+                          <SelectItem value="all">All Clusters</SelectItem>
+                          {uniqueClusters.map((cluster) => (
+                            <SelectItem key={cluster} value={cluster}>
+                              {cluster}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-md overflow-hidden border border-slate-700">
-                <Table>
-                  <TableHeader className="bg-slate-700">
-                    <TableRow className="hover:bg-slate-700">
-                      <TableHead className="text-white">Name</TableHead>
-                      <TableHead className="text-white">Cluster</TableHead>
-                      <TableHead className="text-white">Status</TableHead>
-                      <TableHead className="text-white">Age</TableHead>
-                      <TableHead className="text-white">Pod Count</TableHead>
-                      <TableHead className="text-white">Labels</TableHead>
-                      <TableHead className="text-white">Details</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredNamespaces.length === 0 ? (
-                      <TableRow className="hover:bg-slate-750">
-                        <TableCell
-                          colSpan={7}
-                          className="text-center py-6 text-slate-400"
-                        >
-                          No namespaces found matching your filters.
-                        </TableCell>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md overflow-hidden border border-slate-700">
+                  <Table>
+                    <TableHeader className="bg-slate-700">
+                      <TableRow className="hover:bg-slate-700">
+                        <TableHead className="text-white">Name</TableHead>
+                        <TableHead className="text-white">Cluster</TableHead>
+                        <TableHead className="text-white">Status</TableHead>
+                        <TableHead className="text-white">Age</TableHead>
+                        <TableHead className="text-white">Pod Count</TableHead>
+                        <TableHead className="text-white">Labels</TableHead>
+                        <TableHead className="text-white">Details</TableHead>
                       </TableRow>
-                    ) : (
-                      filteredNamespaces.map((namespace: NamespaceData) => (
-                        <TableRow
-                          key={`${namespace.clusterId}-${namespace.name}`}
-                          className="hover:bg-slate-750 border-t border-slate-700"
-                        >
-                          <TableCell className="font-medium text-white">
-                            <div className="flex items-center">
-                              <MessagesSquare className="h-4 w-4 mr-2 text-indigo-400" />
-                              {namespace.name}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {namespace.clusterName}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {namespace.status === "Active" ? (
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                              ) : (
-                                <AlertTriangle className="h-4 w-4 text-amber-500 mr-1" />
-                              )}
-                              <span className={namespace.status === "Active" ? "text-green-400" : "text-amber-400"}>
-                                {namespace.status}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {namespace.age}
-                          </TableCell>
-                          <TableCell className="text-slate-300">
-                            {namespace.podCount}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap">
-                              {renderLabels(namespace.labels)}
-                              {Object.keys(namespace.labels).length > 3 && (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Badge className="bg-slate-600 hover:bg-slate-500">
-                                        +{Object.keys(namespace.labels).length - 3} more
-                                      </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent className="bg-slate-700 border-slate-600 p-2 text-xs max-w-md">
-                                      <div className="flex flex-wrap gap-1">
-                                        {Object.entries(namespace.labels)
-                                          .slice(3)
-                                          .map(([key, value]) => (
-                                            <Badge
-                                              key={key}
-                                              className="bg-indigo-600"
-                                            >
-                                              {key}={value}
-                                            </Badge>
-                                          ))}
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-blue-400 hover:text-blue-300 hover:bg-slate-700"
-                              onClick={() => setLocation(`/namespaces/${namespace.id}`)}
-                            >
-                              View
-                            </Button>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredNamespaces.length === 0 ? (
+                        <TableRow className="hover:bg-slate-750">
+                          <TableCell
+                            colSpan={7}
+                            className="text-center py-6 text-slate-400"
+                          >
+                            No namespaces found matching your filters.
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              <div className="text-xs text-slate-500 mt-2">
-                Showing {filteredNamespaces.length} of {Array.isArray(namespaces) ? namespaces.length : 0}{" "}
-                namespaces
-              </div>
-            </CardContent>
-          </Card>
+                      ) : (
+                        filteredNamespaces.map((namespace: NamespaceData) => (
+                          <TableRow
+                            key={`${namespace.clusterId}-${namespace.name}`}
+                            className="hover:bg-slate-750 border-t border-slate-700"
+                          >
+                            <TableCell className="font-medium text-white">
+                              <div className="flex items-center">
+                                <MessagesSquare className="h-4 w-4 mr-2 text-indigo-400" />
+                                {namespace.name}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-slate-300">
+                              {namespace.clusterName}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                {namespace.status === "Active" ? (
+                                  <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                                ) : (
+                                  <AlertTriangle className="h-4 w-4 text-amber-500 mr-1" />
+                                )}
+                                <span className={namespace.status === "Active" ? "text-green-400" : "text-amber-400"}>
+                                  {namespace.status}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-slate-300">
+                              {namespace.age}
+                            </TableCell>
+                            <TableCell className="text-slate-300">
+                              {namespace.podCount}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap">
+                                {renderLabels(namespace.labels)}
+                                {Object.keys(namespace.labels).length > 3 && (
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge className="bg-slate-600 hover:bg-slate-500">
+                                          +{Object.keys(namespace.labels).length - 3} more
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-700 border-slate-600 p-2 text-xs max-w-md">
+                                        <div className="flex flex-wrap gap-1">
+                                          {Object.entries(namespace.labels)
+                                            .slice(3)
+                                            .map(([key, value]) => (
+                                              <Badge
+                                                key={key}
+                                                className="bg-indigo-600"
+                                              >
+                                                {key}={value}
+                                              </Badge>
+                                            ))}
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-blue-400 hover:text-blue-300 hover:bg-slate-700"
+                                onClick={() => setLocation(`/namespaces/${namespace.id}`)}
+                              >
+                                View
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                <div className="text-xs text-slate-500 mt-2">
+                  Showing {filteredNamespaces.length} of {Array.isArray(namespaces) ? namespaces.length : 0}{" "}
+                  namespaces
+                </div>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-xl text-white">Namespace Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-750 rounded-lg p-4 border border-slate-700">
-                  <h3 className="text-white font-semibold mb-2 flex items-center">
-                    <TagIcon className="h-4 w-4 mr-1 text-blue-400" />
-                    Labels Overview
-                  </h3>
-                  <Separator className="my-2 bg-slate-700" />
-                  <div className="mt-2 space-y-2">
-                    {Array.isArray(namespaces) && namespaces.length > 0 && (() => {
-                      const labelCounts: Record<string, number> = {};
-                      namespaces.forEach((ns: NamespaceData) => {
-                        Object.keys(ns.labels || {}).forEach((label) => {
-                          labelCounts[label] = (labelCounts[label] || 0) + 1;
+            <Card className="bg-slate-800 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-xl text-white">Namespace Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-slate-750 rounded-lg p-4 border border-slate-700">
+                    <h3 className="text-white font-semibold mb-2 flex items-center">
+                      <TagIcon className="h-4 w-4 mr-1 text-blue-400" />
+                      Labels Overview
+                    </h3>
+                    <Separator className="my-2 bg-slate-700" />
+                    <div className="mt-2 space-y-2">
+                      {Array.isArray(namespaces) && namespaces.length > 0 && (() => {
+                        const labelCounts: Record<string, number> = {};
+                        namespaces.forEach((ns: NamespaceData) => {
+                          Object.keys(ns.labels || {}).forEach((label) => {
+                            labelCounts[label] = (labelCounts[label] || 0) + 1;
+                          });
                         });
-                      });
-                      
-                      // Get top 5 labels
-                      return Object.entries(labelCounts)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 5)
-                        .map(([label, count]) => (
-                          <div 
-                            key={label} 
-                            className="flex justify-between items-center text-sm"
-                          >
-                            <Badge className="bg-indigo-600">{label}</Badge>
-                            <span className="text-slate-400">
-                              {count} {count === 1 ? 'namespace' : 'namespaces'}
-                            </span>
-                          </div>
-                        ));
-                    })()}
+                        
+                        // Get top 5 labels
+                        return Object.entries(labelCounts)
+                          .sort((a, b) => b[1] - a[1])
+                          .slice(0, 5)
+                          .map(([label, count]) => (
+                            <div 
+                              key={label} 
+                              className="flex justify-between items-center text-sm"
+                            >
+                              <Badge className="bg-indigo-600">{label}</Badge>
+                              <span className="text-slate-400">
+                                {count} {count === 1 ? 'namespace' : 'namespaces'}
+                              </span>
+                            </div>
+                          ));
+                      })()}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-slate-750 rounded-lg p-4 border border-slate-700">
+                    <h3 className="text-white font-semibold mb-2 flex items-center">
+                      <Server className="h-4 w-4 mr-1 text-blue-400" />
+                      Namespace Count by Cluster
+                    </h3>
+                    <Separator className="my-2 bg-slate-700" />
+                    <div className="mt-2 space-y-2">
+                      {Array.isArray(namespaces) && namespaces.length > 0 && (() => {
+                        const clusterCounts: Record<string, number> = {};
+                        namespaces.forEach((ns: NamespaceData) => {
+                          clusterCounts[ns.clusterName] = (clusterCounts[ns.clusterName] || 0) + 1;
+                        });
+                        
+                        // Get all clusters
+                        return Object.entries(clusterCounts)
+                          .sort((a, b) => b[1] - a[1])
+                          .map(([cluster, count]) => (
+                            <div 
+                              key={cluster} 
+                              className="flex justify-between items-center text-sm"
+                            >
+                              <span className="text-white">{cluster}</span>
+                              <span className="text-slate-400">
+                                {count} {count === 1 ? 'namespace' : 'namespaces'}
+                              </span>
+                            </div>
+                          ));
+                      })()}
+                    </div>
                   </div>
                 </div>
-                
-                <div className="bg-slate-750 rounded-lg p-4 border border-slate-700">
-                  <h3 className="text-white font-semibold mb-2 flex items-center">
-                    <Server className="h-4 w-4 mr-1 text-blue-400" />
-                    Namespace Count by Cluster
-                  </h3>
-                  <Separator className="my-2 bg-slate-700" />
-                  <div className="mt-2 space-y-2">
-                    {Array.isArray(namespaces) && namespaces.length > 0 && (() => {
-                      const clusterCounts: Record<string, number> = {};
-                      namespaces.forEach((ns: NamespaceData) => {
-                        clusterCounts[ns.clusterName] = (clusterCounts[ns.clusterName] || 0) + 1;
-                      });
-                      
-                      // Get all clusters
-                      return Object.entries(clusterCounts)
-                        .sort((a, b) => b[1] - a[1])
-                        .map(([cluster, count]) => (
-                          <div 
-                            key={cluster} 
-                            className="flex justify-between items-center text-sm"
-                          >
-                            <span className="text-white">{cluster}</span>
-                            <span className="text-slate-400">
-                              {count} {count === 1 ? 'namespace' : 'namespaces'}
-                            </span>
-                          </div>
-                        ));
-                    })()}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </main>
       </div>
     </div>
