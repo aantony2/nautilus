@@ -74,7 +74,7 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
 
   return (
     <div className="mb-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center mb-4">
         <div className="flex items-center space-x-2">
           <div className="relative w-64 mr-2">
             <Input
@@ -120,9 +120,6 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
           >
             <FileDown className="h-5 w-5" />
           </Button>
-        </div>
-        <div className="text-xs text-slate-400">
-          Showing {filteredClusters.length} of {clusters.length} clusters
         </div>
       </div>
 
@@ -240,6 +237,11 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex justify-end px-6 py-3 bg-slate-800 border-t border-slate-700">
+          <div className="text-xs text-slate-400">
+            Showing {filteredClusters.length} of {clusters.length} clusters
+          </div>
         </div>
       </div>
     </div>
