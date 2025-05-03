@@ -278,6 +278,9 @@ export async function updateAppSettings(req: Request, res: Response) {
       ...currentAppSettings,
       ...result.data
     };
+    
+    // Save to database
+    await saveSettingsToDB(SETTING_KEYS.APP_SETTINGS, currentAppSettings);
 
     res.json({ success: true, message: "Application settings updated successfully" });
   } catch (error) {
@@ -343,6 +346,9 @@ export async function updateAuthSettings(req: Request, res: Response) {
       ...currentAuthSettings,
       ...result.data
     };
+    
+    // Save to database
+    await saveSettingsToDB(SETTING_KEYS.AUTH_SETTINGS, currentAuthSettings);
 
     res.json({ 
       success: true, 

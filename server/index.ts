@@ -4,6 +4,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { db } from "./db";
 import { migrate } from "drizzle-orm/postgres-js/migrator";
+import { initializeSettings } from "./settings";
+import { initializeScheduler } from "./scripts/scheduler";
 
 const app = express();
 app.use(express.json());
@@ -50,6 +52,14 @@ app.use((req, res, next) => {
     }
     
     log("Database initialization complete");
+    
+    // Initialize application settings from database
+    await initializeSettings();
+    log("Settings initialized from database");
+    
+    // Initialize the scheduler for cloud data updates
+    await initializeScheduler();
+    log("Cloud data scheduler initialized");
   } catch (error) {
     log(`Error initializing database: ${error}`);
   }
