@@ -8,6 +8,7 @@ import MainSidebar, { SidebarProvider, useSidebarContext } from "@/components/la
 import { AppSettingsProvider } from "@/hooks/use-app-settings";
 import { AuthProvider, RequireAuth } from "@/components/auth/AuthProvider";
 import { AuthSettingsProvider } from "@/hooks/use-auth-settings";
+import { ThemeProvider } from "@/hooks/use-theme";
 import DynamicStyles from "./DynamicStyles";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
@@ -110,15 +111,17 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <AppSettingsProvider>
-          <AuthSettingsProvider>
-            <AuthProvider>
-              <SidebarProvider>
-                <AppLayout />
-              </SidebarProvider>
-            </AuthProvider>
-          </AuthSettingsProvider>
-        </AppSettingsProvider>
+        <ThemeProvider>
+          <AppSettingsProvider>
+            <AuthSettingsProvider>
+              <AuthProvider>
+                <SidebarProvider>
+                  <AppLayout />
+                </SidebarProvider>
+              </AuthProvider>
+            </AuthSettingsProvider>
+          </AppSettingsProvider>
+        </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
