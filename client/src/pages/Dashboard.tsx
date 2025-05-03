@@ -104,26 +104,26 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <OverviewStats stats={stats} />
+            <OverviewStats stats={stats as OverviewStatsData} />
           )}
 
           {clustersLoading ? (
             <Skeleton className="h-96 w-full mb-6" />
           ) : (
-            <ClusterStatusTable clusters={clusters} />
+            <ClusterStatusTable clusters={clusters || []} />
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {utilizationLoading ? (
               <Skeleton className="h-80 w-full lg:col-span-2" />
             ) : (
-              <ResourceUtilization data={utilization} />
+              <ResourceUtilization data={utilization as ResourceUtilizationData} />
             )}
 
             {servicesLoading ? (
               <Skeleton className="h-80 w-full" />
             ) : (
-              <ServiceHealth services={services} />
+              <ServiceHealth services={services || []} />
             )}
           </div>
 
@@ -131,13 +131,13 @@ export default function Dashboard() {
             {eventsLoading ? (
               <Skeleton className="h-80 w-full" />
             ) : (
-              <RecentEvents events={events} />
+              <RecentEvents events={events || []} />
             )}
 
             {workloadsLoading ? (
               <Skeleton className="h-80 w-full" />
             ) : (
-              <WorkloadStatus workloads={workloads} />
+              <WorkloadStatus workloads={workloads as WorkloadData} />
             )}
           </div>
         </main>

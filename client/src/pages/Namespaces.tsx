@@ -269,111 +269,125 @@ export default function Namespaces() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-md overflow-hidden border border-slate-700">
-                  <Table>
-                    <TableHeader className="bg-slate-700">
-                      <TableRow className="hover:bg-slate-700">
-                        <TableHead className="text-white">Name</TableHead>
-                        <TableHead className="text-white">Cluster</TableHead>
-                        <TableHead className="text-white">Status</TableHead>
-                        <TableHead className="text-white">Age</TableHead>
-                        <TableHead className="text-white">Pod Count</TableHead>
-                        <TableHead className="text-white">Labels</TableHead>
-                        <TableHead className="text-white">Details</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredNamespaces.length === 0 ? (
-                        <TableRow className="hover:bg-slate-750">
-                          <TableCell
-                            colSpan={7}
-                            className="text-center py-6 text-slate-400"
-                          >
-                            No namespaces found matching your filters.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredNamespaces.map((namespace: NamespaceData) => (
-                          <TableRow
-                            key={`${namespace.clusterId}-${namespace.name}`}
-                            className="hover:bg-slate-750 border-t border-slate-700"
-                          >
-                            <TableCell className="font-medium text-white">
-                              <div className="flex items-center">
-                                <MessagesSquare className="h-4 w-4 mr-2 text-indigo-400" />
-                                {namespace.name}
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-slate-300">
-                              {namespace.clusterName}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center">
-                                {namespace.status === "Active" ? (
-                                  <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
-                                ) : (
-                                  <AlertTriangle className="h-4 w-4 text-amber-500 mr-1" />
-                                )}
-                                <span className={namespace.status === "Active" ? "text-green-400" : "text-amber-400"}>
-                                  {namespace.status}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-slate-300">
-                              {namespace.age}
-                            </TableCell>
-                            <TableCell className="text-slate-300">
-                              {namespace.podCount}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-wrap">
-                                {renderLabels(namespace.labels)}
-                                {Object.keys(namespace.labels).length > 3 && (
-                                  <TooltipProvider>
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge className="bg-slate-600 hover:bg-slate-500">
-                                          +{Object.keys(namespace.labels).length - 3} more
-                                        </Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="bg-slate-700 border-slate-600 p-2 text-xs max-w-md">
-                                        <div className="flex flex-wrap gap-1">
-                                          {Object.entries(namespace.labels)
-                                            .slice(3)
-                                            .map(([key, value]) => (
-                                              <Badge
-                                                key={key}
-                                                className="bg-indigo-600"
-                                              >
-                                                {key}={value}
-                                              </Badge>
-                                            ))}
-                                        </div>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </TooltipProvider>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-blue-400 hover:text-blue-300 hover:bg-slate-700"
-                                onClick={() => setLocation(`/namespaces/${namespace.id}`)}
-                              >
-                                View
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                <div className="bg-slate-800 rounded-lg shadow-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-700">
+                      <thead className="bg-slate-900">
+                        <tr>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            Name
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            Cluster
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            Status
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            Age
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            Pod Count
+                          </th>
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                            Labels
+                          </th>
+                          <th scope="col" className="relative px-6 py-3">
+                            <span className="sr-only">Actions</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-slate-800 divide-y divide-slate-700">
+                        {filteredNamespaces.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="px-6 py-4 text-center text-slate-400">
+                              No namespaces found matching your filters.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredNamespaces.map((namespace: NamespaceData) => (
+                            <tr key={`${namespace.clusterId}-${namespace.name}`} className="hover:bg-slate-700">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-md bg-slate-700">
+                                    <MessagesSquare className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-white">{namespace.name}</div>
+                                    <div className="text-xs text-slate-400">{namespace.clusterId}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                {namespace.clusterName}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  {namespace.status === "Active" ? (
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                      <span className="w-2 h-2 rounded-full bg-green-500 mr-1 self-center"></span>Active
+                                    </span>
+                                  ) : (
+                                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                      <span className="w-2 h-2 rounded-full bg-yellow-500 mr-1 self-center"></span>Terminating
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                {namespace.age}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
+                                {namespace.podCount}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex flex-wrap gap-1 max-w-xs">
+                                  {renderLabels(namespace.labels)}
+                                  {Object.keys(namespace.labels).length > 3 && (
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Badge className="bg-slate-600 hover:bg-slate-500">
+                                            +{Object.keys(namespace.labels).length - 3} more
+                                          </Badge>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="bg-slate-700 border-slate-600 p-2 text-xs max-w-md">
+                                          <div className="flex flex-wrap gap-1">
+                                            {Object.entries(namespace.labels)
+                                              .slice(3)
+                                              .map(([key, value]) => (
+                                                <Badge
+                                                  key={key}
+                                                  className="bg-indigo-600"
+                                                >
+                                                  {key}={value}
+                                                </Badge>
+                                              ))}
+                                          </div>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <Button 
+                                  variant="link" 
+                                  className="text-primary"
+                                  onClick={() => setLocation(`/namespaces/${namespace.id}`)}
+                                >
+                                  Details
+                                </Button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-                <div className="text-xs text-slate-500 mt-2">
-                  Showing {filteredNamespaces.length} of {Array.isArray(namespaces) ? namespaces.length : 0}{" "}
-                  namespaces
+                <div className="text-xs text-slate-500 mt-2 text-right">
+                  Showing {filteredNamespaces.length} of {Array.isArray(namespaces) ? namespaces.length : 0} namespaces
                 </div>
               </CardContent>
             </Card>
