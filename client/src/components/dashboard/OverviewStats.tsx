@@ -114,7 +114,7 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
                 <div className="flex justify-between text-xs text-slate-400">
                   {card.details.map((detail, i) => (
                     <span key={i}>
-                      {detail.label}: <span className={detail.color ? detail.color : "text-white"}>{detail.value.toLocaleString()}</span>
+                      {detail.label}: <span className={(detail as DetailItem).color || "text-white"}>{detail.value.toLocaleString()}</span>
                     </span>
                   ))}
                 </div>
