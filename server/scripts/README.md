@@ -65,6 +65,23 @@ The following environment variables can be configured in the `.env` file:
 ### Other Settings
 - `LOG_LEVEL`: Logging level (debug, info, warn, error)
 
+## Cloud Provider Credentials
+
+For detailed instructions on how to create and configure the required API credentials for each cloud provider, refer to the [Cloud Credentials Guide](CLOUD_CREDENTIALS.md) document. This guide includes step-by-step instructions for:
+
+- Creating a Google Cloud Service Account with the proper permissions
+- Setting up an Azure AD Application with the required roles
+- Creating an AWS IAM User with the necessary policies
+
+## Data Collection and Mapping
+
+To understand what data is collected from each cloud provider and how it maps to the database schema, refer to the [Data Mapping Guide](DATA_MAPPING.md). This document explains:
+
+- How cloud provider API data is mapped to database fields
+- Provider-specific data collection details
+- Kubernetes API enrichment process
+- How the collected data appears in the dashboard
+
 ## Schedule
 
 By default, the data updater runs every day at 2:00 AM UTC. You can modify the schedule by editing the cron configuration in the Dockerfile.
