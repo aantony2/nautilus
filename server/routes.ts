@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { getGkeData, getAksData, getClusterMetrics } from "./services/kubernetes";
 import { getCluster, getResourceUtilization } from "./services/kubernetes";
+import { getDatabaseSettings, updateDatabaseSettings, testDatabaseConnection } from "./settings";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API Routes
@@ -134,6 +135,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Failed to fetch namespace data' });
     }
   });
+
+  // Settings routes
+  app.get('/api/settings/database', getDatabaseSettings);
+  app.post('/api/settings/database', updateDatabaseSettings);
+  app.post('/api/settings/database/test', testDatabaseConnection);
 
   // Create HTTP server
   const httpServer = createServer(app);

@@ -15,6 +15,7 @@ import Networking from "@/pages/Networking";
 import Security from "@/pages/Security";
 import Alerts from "@/pages/Alerts";
 import Namespaces from "@/pages/Namespaces";
+import Settings from "@/pages/Settings";
 
 // Main layout component with routing
 function AppLayout() {
@@ -37,6 +38,7 @@ function AppLayout() {
           <Route path="/security" component={Security} />
           <Route path="/alerts" component={Alerts} />
           <Route path="/namespaces" component={Namespaces} />
+          <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </div>
