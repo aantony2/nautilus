@@ -56,7 +56,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function Sidebar({ className }: SidebarProps) {
+export default function MainSidebar({ className }: SidebarProps) {
   const [isHome] = useRoute("/");
   const { sidebarVisible, setSidebarVisible } = useSidebarContext();
 
