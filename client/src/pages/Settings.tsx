@@ -458,7 +458,12 @@ export default function Settings() {
                       <Label>Logo Preview</Label>
                       <div className="bg-slate-900 p-4 rounded-md flex justify-center">
                         <div className="w-16 h-16 bg-slate-800 rounded-md flex items-center justify-center">
-                          <svg className="h-12 w-12 text-primary" viewBox="0 0 24 24" fill="currentColor">
+                          <svg 
+                            className="h-12 w-12" 
+                            viewBox="0 0 24 24" 
+                            fill="currentColor"
+                            style={{ color: appFormData.primaryColor || "#0ea5e9" }}
+                          >
                             {appFormData.logoSvgCode ? (
                               <path d={appFormData.logoSvgCode} />
                             ) : (

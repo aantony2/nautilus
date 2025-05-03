@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import MainSidebar, { SidebarProvider, useSidebarContext } from "@/components/layout/Sidebar";
 import { AppSettingsProvider } from "@/hooks/use-app-settings";
+import DynamicStyles from "./DynamicStyles";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
 import ClusterDetails from "@/pages/ClusterDetails";
@@ -24,6 +25,7 @@ function AppLayout() {
   
   return (
     <div className="relative">
+      <DynamicStyles />
       <MainSidebar />
       <div className={cn(
         "transition-all duration-300 ease-in-out p-6 pt-16 md:p-8 md:pt-8 bg-slate-900 min-h-screen",

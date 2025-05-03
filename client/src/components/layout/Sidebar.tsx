@@ -60,6 +60,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 export default function MainSidebar({ className }: SidebarProps) {
   const [isHome] = useRoute("/");
   const { sidebarVisible, setSidebarVisible } = useSidebarContext();
+  const { appSettings } = useAppSettings();
 
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/" },
@@ -97,10 +98,19 @@ export default function MainSidebar({ className }: SidebarProps) {
             "flex items-center flex-shrink-0 px-4 mb-5",
             sidebarVisible ? "justify-center" : "justify-center"
           )}>
-            <svg className={cn("h-8 w-8 text-primary", sidebarVisible && "mr-2")} viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>
+            <svg 
+              className={cn("h-8 w-8 text-primary", sidebarVisible && "mr-2")} 
+              viewBox="0 0 24 24" 
+              fill="currentColor"
+              style={{ color: appSettings.primaryColor || "#0ea5e9" }}
+            >
+              {appSettings.logoSvgCode ? (
+                <path d={appSettings.logoSvgCode} />
+              ) : (
+                <path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>
+              )}
             </svg>
-            {sidebarVisible && <h1 className="text-xl font-bold text-white">Nautilus</h1>}
+            {sidebarVisible && <h1 className="text-xl font-bold text-white">{appSettings.productName}</h1>}
           </div>
           
           <ScrollArea className="flex-1 px-3">
