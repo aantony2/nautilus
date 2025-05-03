@@ -17,7 +17,8 @@ export default function OverviewStats({ stats }: OverviewStatsProps) {
       color: "text-primary",
       details: [
         { label: "GKE", value: stats.gkeClusters },
-        { label: "AKS", value: stats.aksClusters }
+        { label: "AKS", value: stats.aksClusters },
+        { label: "EKS", value: stats.eksClusters }
       ]
     },
     {

@@ -65,6 +65,7 @@ export class DatabaseStorage implements IStorage {
     
     const gkeClusters = clusterData.filter(c => c.provider === 'GKE').length;
     const aksClusters = clusterData.filter(c => c.provider === 'AKS').length;
+    const eksClusters = clusterData.filter(c => c.provider === 'EKS').length;
     
     let totalNodes = 0;
     let totalPods = 0;
@@ -83,6 +84,7 @@ export class DatabaseStorage implements IStorage {
       clustersChange: 0, // Would need historical data to calculate change
       gkeClusters,
       aksClusters,
+      eksClusters,
       
       totalNodes,
       nodesChange: 0,
@@ -250,17 +252,20 @@ export class DatabaseStorage implements IStorage {
       summary: {
         deployments: [
           { clusterType: "GKE", total: 56, healthy: 54, warning: 2, failed: 0 },
-          { clusterType: "AKS", total: 30, healthy: 28, warning: 1, failed: 1 }
+          { clusterType: "AKS", total: 30, healthy: 28, warning: 1, failed: 1 },
+          { clusterType: "EKS", total: 42, healthy: 40, warning: 2, failed: 0 }
         ],
         statefulSets: [
           { clusterType: "GKE", total: 16, healthy: 15, warning: 1, failed: 0 },
-          { clusterType: "AKS", total: 8, healthy: 7, warning: 1, failed: 0 }
+          { clusterType: "AKS", total: 8, healthy: 7, warning: 1, failed: 0 },
+          { clusterType: "EKS", total: 12, healthy: 11, warning: 1, failed: 0 }
         ]
       },
       distribution: {
         daemonSets: {
           GKE: 24,
-          AKS: 16
+          AKS: 16,
+          EKS: 12
         }
       },
       topConsumers: [

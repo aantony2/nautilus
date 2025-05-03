@@ -109,6 +109,7 @@ export interface OverviewStatsData {
   clustersChange: number;
   gkeClusters: number;
   aksClusters: number;
+  eksClusters: number;
   
   totalNodes: number;
   nodesChange: number;
@@ -193,6 +194,7 @@ export interface WorkloadData {
     daemonSets: {
       GKE: number;
       AKS: number;
+      EKS: number;
     };
   };
   topConsumers: Array<{

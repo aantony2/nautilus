@@ -22,6 +22,14 @@ export async function getAksData(): Promise<ClusterData[]> {
   return clusters.filter(cluster => cluster.provider === "AKS");
 }
 
+// Get data from Amazon Elastic Kubernetes Service
+export async function getEksData(): Promise<ClusterData[]> {
+  // In a real implementation, this would use the AWS SDK for JavaScript
+  // to fetch data from the EKS API
+  const clusters = await storage.getClusters();
+  return clusters.filter(cluster => cluster.provider === "EKS");
+}
+
 // Get cluster by ID
 export async function getCluster(id: string): Promise<ClusterData | undefined> {
   return storage.getClusterById(id);
