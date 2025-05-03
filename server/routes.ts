@@ -10,7 +10,10 @@ import {
   getAppSettings,
   updateAppSettings,
   getAuthSettings,
-  updateAuthSettings
+  updateAuthSettings,
+  getCloudProviderCredentials,
+  updateCloudProviderCredentials,
+  testCloudProviderConnections
 } from "./settings";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -156,6 +159,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication settings routes
   app.get('/api/settings/auth', getAuthSettings);
   app.post('/api/settings/auth', updateAuthSettings);
+  
+  // Cloud provider credentials routes
+  app.get('/api/settings/cloud-credentials', getCloudProviderCredentials);
+  app.post('/api/settings/cloud-credentials', updateCloudProviderCredentials);
+  app.post('/api/settings/cloud-credentials/test', testCloudProviderConnections);
 
   // Create HTTP server
   const httpServer = createServer(app);

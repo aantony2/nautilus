@@ -67,6 +67,41 @@ interface ConnectionTestResult {
   message: string;
 }
 
+// Define cloud provider credentials type
+interface CloudProviderCredentials {
+  // Google Cloud Platform / GKE
+  gcpEnabled: boolean;
+  gcpProjectId?: string;
+  gcpCredentialsJson?: string;
+  
+  // Microsoft Azure / AKS
+  azureEnabled: boolean;
+  azureTenantId?: string;
+  azureClientId?: string;
+  azureClientSecret?: string;
+  azureSubscriptionId?: string;
+  
+  // Amazon Web Services / EKS
+  awsEnabled: boolean;
+  awsAccessKeyId?: string;
+  awsSecretAccessKey?: string;
+  awsRegion?: string;
+  
+  // Update schedule
+  updateSchedule?: string;
+}
+
+// Define cloud credentials test result type
+interface CloudCredentialsTestResult {
+  success: boolean;
+  message: string;
+  results: {
+    gcp: { success: boolean; message: string };
+    azure: { success: boolean; message: string };
+    aws: { success: boolean; message: string };
+  };
+}
+
 export default function Settings() {
   const { toast } = useToast();
   const [isTesting, setIsTesting] = useState(false);
@@ -341,6 +376,158 @@ export default function Settings() {
   
   const saveAuthSettings = () => {
     saveAuthSettingsMutation.mutate();
+  };
+  
+  // Get cloud provider credentials
+  const { data: cloudCredentials } = useQuery<CloudProviderCredentials>({
+    queryKey: ['/api/settings/cloud-credentials'],
+  });
+  
+  // Cloud credentials form state
+  const [cloudFormData, setCloudFormData] = useState<CloudProviderCredentials>({
+    // GCP
+    gcpEnabled: false,
+    gcpProjectId: '',
+    gcpCredentialsJson: '',
+    
+    // Azure
+    azureEnabled: false,
+    azureTenantId: '',
+    azureClientId: '',
+    azureClientSecret: '',
+    azureSubscriptionId: '',
+    
+    // AWS
+    awsEnabled: false,
+    awsAccessKeyId: '',
+    awsSecretAccessKey: '',
+    awsRegion: 'us-west-2',
+    
+    // Update schedule
+    updateSchedule: '0 2 * * *'
+  });
+  
+  // Update cloud form when settings are loaded
+  useEffect(() => {
+    if (cloudCredentials) {
+      setCloudFormData({
+        // GCP
+        gcpEnabled: cloudCredentials.gcpEnabled || false,
+        gcpProjectId: cloudCredentials.gcpProjectId || '',
+        gcpCredentialsJson: cloudCredentials.gcpCredentialsJson || '',
+        
+        // Azure
+        azureEnabled: cloudCredentials.azureEnabled || false,
+        azureTenantId: cloudCredentials.azureTenantId || '',
+        azureClientId: cloudCredentials.azureClientId || '',
+        azureClientSecret: cloudCredentials.azureClientSecret || '',
+        azureSubscriptionId: cloudCredentials.azureSubscriptionId || '',
+        
+        // AWS
+        awsEnabled: cloudCredentials.awsEnabled || false,
+        awsAccessKeyId: cloudCredentials.awsAccessKeyId || '',
+        awsSecretAccessKey: cloudCredentials.awsSecretAccessKey || '',
+        awsRegion: cloudCredentials.awsRegion || 'us-west-2',
+        
+        // Update schedule
+        updateSchedule: cloudCredentials.updateSchedule || '0 2 * * *'
+      });
+    }
+  }, [cloudCredentials]);
+  
+  // Handle cloud credentials form input changes
+  const handleCloudInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    
+    setCloudFormData({
+      ...cloudFormData,
+      [name]: type === 'checkbox' ? checked : value,
+    });
+  };
+  
+  // Handle cloud select input changes
+  const handleCloudSelectChange = (value: string, name: string) => {
+    setCloudFormData({
+      ...cloudFormData,
+      [name]: value,
+    });
+  };
+  
+  // Handle cloud provider toggle
+  const handleCloudToggle = (checked: boolean, provider: 'gcp' | 'azure' | 'aws') => {
+    setCloudFormData({
+      ...cloudFormData,
+      [`${provider}Enabled`]: checked,
+    });
+  };
+  
+  // Testing cloud provider connections
+  const [isTestingCloud, setIsTestingCloud] = useState(false);
+  const [cloudTestResult, setCloudTestResult] = useState<CloudCredentialsTestResult | null>(null);
+  
+  const testCloudConnections = async () => {
+    setIsTestingCloud(true);
+    setCloudTestResult(null);
+    
+    try {
+      const result = await apiRequest<CloudCredentialsTestResult>('/api/settings/cloud-credentials/test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cloudFormData),
+      });
+      
+      setCloudTestResult(result);
+      
+      toast({
+        title: result.success ? "Cloud Provider Connections Successful" : "Cloud Provider Connection Issues",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Connection Test Failed",
+        description: "An error occurred while testing cloud provider connections.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTestingCloud(false);
+    }
+  };
+  
+  // Save cloud provider credentials
+  const saveCloudCredentialsMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest<{ success: boolean; message: string }>('/api/settings/cloud-credentials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(cloudFormData),
+      });
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Cloud Provider Credentials Saved",
+        description: data.message || "Cloud provider credentials have been updated.",
+      });
+      
+      // Invalidate cloud credentials query to refresh data
+      queryClient.invalidateQueries({ queryKey: ['/api/settings/cloud-credentials'] });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error Saving Credentials",
+        description: "An error occurred while saving the cloud provider credentials.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const saveCloudCredentials = () => {
+    saveCloudCredentialsMutation.mutate();
   };
 
   return (
