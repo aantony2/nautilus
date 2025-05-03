@@ -352,15 +352,6 @@ export default function Settings() {
             <div className="flex items-center">
               <h1 className="text-lg font-semibold text-white">Settings</h1>
             </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => window.location.reload()}
-              >
-                <RefreshCw className="h-5 w-5" />
-              </Button>
-            </div>
           </div>
         </header>
 

@@ -53,7 +53,6 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Cluster Status</h2>
         <div className="flex items-center space-x-2">
           <Select value={providerFilter} onValueChange={setProviderFilter}>
             <SelectTrigger className="bg-slate-800 border-slate-700 text-slate-300 w-[180px]">
