@@ -10,6 +10,7 @@ export const cloudProviderCredentialsSchema = z.object({
   gcpEnabled: z.boolean().default(false),
   gcpProjectId: z.string().optional(),
   gcpCredentialsJson: z.string().optional(),
+  gcpScanAllProjects: z.boolean().default(true), // Scan all accessible projects in the organization
   
   // Microsoft Azure / AKS
   azureEnabled: z.boolean().default(false),
@@ -17,12 +18,15 @@ export const cloudProviderCredentialsSchema = z.object({
   azureClientId: z.string().optional(),
   azureClientSecret: z.string().optional(),
   azureSubscriptionId: z.string().optional(),
+  azureScanAllSubscriptions: z.boolean().default(true), // Scan all accessible subscriptions in the tenant
   
   // Amazon Web Services / EKS
   awsEnabled: z.boolean().default(false),
   awsAccessKeyId: z.string().optional(),
   awsSecretAccessKey: z.string().optional(),
   awsRegion: z.string().optional().default("us-west-2"),
+  awsScanAllRegions: z.boolean().default(true), // Scan all AWS regions
+  awsScanAllAccounts: z.boolean().default(true), // Scan all accounts (requires appropriate IAM roles)
   
   // Update schedule (in cron format)
   updateSchedule: z.string().optional().default("0 2 * * *"),
@@ -98,6 +102,7 @@ const DEFAULT_CLOUD_CREDENTIALS: CloudProviderCredentials = {
   gcpEnabled: process.env.GOOGLE_PROJECT_ID ? true : false,
   gcpProjectId: process.env.GOOGLE_PROJECT_ID || "",
   gcpCredentialsJson: "",
+  gcpScanAllProjects: true,
   
   // Microsoft Azure / AKS
   azureEnabled: process.env.AZURE_SUBSCRIPTION_ID ? true : false,
@@ -105,12 +110,15 @@ const DEFAULT_CLOUD_CREDENTIALS: CloudProviderCredentials = {
   azureClientId: process.env.AZURE_CLIENT_ID || "",
   azureClientSecret: process.env.AZURE_CLIENT_SECRET || "",
   azureSubscriptionId: process.env.AZURE_SUBSCRIPTION_ID || "",
+  azureScanAllSubscriptions: true,
   
   // Amazon Web Services / EKS
   awsEnabled: process.env.AWS_ACCESS_KEY_ID ? true : false,
   awsAccessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
   awsSecretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
   awsRegion: process.env.AWS_REGION || "us-west-2",
+  awsScanAllRegions: true,
+  awsScanAllAccounts: true,
   
   // Update schedule
   updateSchedule: "0 2 * * *" // Every day at 2 AM
