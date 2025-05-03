@@ -19,6 +19,7 @@ import Networking from "@/pages/Networking";
 import Security from "@/pages/Security";
 import Alerts from "@/pages/Alerts";
 import Namespaces from "@/pages/Namespaces";
+import NamespaceDetails from "@/pages/NamespaceDetails";
 import Settings from "@/pages/Settings";
 import Login from "@/pages/Login";
 
@@ -74,6 +75,11 @@ function AppLayout() {
           <Route path="/alerts">
             <RequireAuth>
               <Alerts />
+            </RequireAuth>
+          </Route>
+          <Route path="/namespaces/:id">
+            <RequireAuth>
+              <NamespaceDetails />
             </RequireAuth>
           </Route>
           <Route path="/namespaces">
