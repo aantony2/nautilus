@@ -96,7 +96,7 @@ export default function MainSidebar({ className }: SidebarProps) {
         <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
           <div className={cn(
             "flex items-center flex-shrink-0 px-4 mb-5",
-            sidebarVisible ? "justify-center" : "justify-center"
+            sidebarVisible ? "justify-start" : "justify-center"
           )}>
             <svg 
               className={cn("h-8 w-8 text-primary", sidebarVisible && "mr-2")} 
