@@ -441,9 +441,10 @@ async function fetchEKSClusters(defaultRegion = 'us-west-2', scanAllRegions = fa
 }
 
 // Function to get detailed metrics from Kubernetes API
-async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: string): Promise<ClusterData> {
+async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: string): Promise<ClusterData & { dependencies?: ClusterDependencyData[], namespacesCollection?: NamespaceData[] }> {
   try {
     const k8sApi = await connectToK8sCluster(kubeConfig);
+    const appsV1Api = kc.makeApiClient(k8s.AppsV1Api);
     
     // Get namespace count
     const { body: namespaceList } = await k8sApi.listNamespace();
@@ -493,7 +494,123 @@ async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: st
       namespacesData.push(namespaceData);
     }
     
-    return { ...clusterData, namespacesCollection: namespacesData };
+    // Detect cluster dependencies like Nginx Ingress Controller
+    const dependencies: ClusterDependencyData[] = [];
+    
+    try {
+      // Look for Nginx Ingress Controller deployments and daemonsets across all namespaces
+      const { body: deployments } = await appsV1Api.listDeploymentForAllNamespaces();
+      const { body: daemonsets } = await appsV1Api.listDaemonSetForAllNamespaces();
+      
+      // Check deployments for Nginx Ingress Controller
+      for (const deployment of deployments.items) {
+        const labels = deployment.metadata?.labels || {};
+        const name = deployment.metadata?.name || '';
+        const namespace = deployment.metadata?.namespace || '';
+        
+        // Check if this is an Nginx Ingress Controller
+        const isNginxIngress = 
+          name.includes('nginx-ingress') || 
+          name.includes('ingress-nginx') ||
+          (labels['app.kubernetes.io/name'] === 'ingress-nginx') ||
+          (labels['app'] === 'nginx-ingress');
+        
+        if (isNginxIngress) {
+          // Found Nginx Ingress Controller
+          let version = 'unknown';
+          
+          // Try to get version from image tag
+          if (deployment.spec?.template?.spec?.containers && deployment.spec.template.spec.containers.length > 0) {
+            const image = deployment.spec.template.spec.containers[0].image || '';
+            const versionMatch = image.match(/:([^:]+)$/);
+            if (versionMatch && versionMatch[1]) {
+              version = versionMatch[1];
+            }
+          }
+          
+          // Get replica count and ready replicas
+          const replicas = deployment.status?.replicas || 0;
+          const readyReplicas = deployment.status?.readyReplicas || 0;
+          const status = readyReplicas >= replicas ? 'Active' : 'Warning';
+          
+          dependencies.push({
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            type: 'ingress-controller',
+            name: `nginx-ingress-${name}`,
+            namespace,
+            version,
+            status,
+            detectedAt: new Date().toISOString(),
+            metadata: {
+              kind: 'Deployment',
+              replicas,
+              readyReplicas,
+              labels
+            }
+          });
+        }
+      }
+      
+      // Check daemonsets for Nginx Ingress Controller
+      for (const daemonset of daemonsets.items) {
+        const labels = daemonset.metadata?.labels || {};
+        const name = daemonset.metadata?.name || '';
+        const namespace = daemonset.metadata?.namespace || '';
+        
+        // Check if this is an Nginx Ingress Controller
+        const isNginxIngress = 
+          name.includes('nginx-ingress') || 
+          name.includes('ingress-nginx') ||
+          (labels['app.kubernetes.io/name'] === 'ingress-nginx') ||
+          (labels['app'] === 'nginx-ingress');
+        
+        if (isNginxIngress) {
+          // Found Nginx Ingress Controller
+          let version = 'unknown';
+          
+          // Try to get version from image tag
+          if (daemonset.spec?.template?.spec?.containers && daemonset.spec.template.spec.containers.length > 0) {
+            const image = daemonset.spec.template.spec.containers[0].image || '';
+            const versionMatch = image.match(/:([^:]+)$/);
+            if (versionMatch && versionMatch[1]) {
+              version = versionMatch[1];
+            }
+          }
+          
+          // Get number of nodes and ready count
+          const desiredNodes = daemonset.status?.desiredNumberScheduled || 0;
+          const readyNodes = daemonset.status?.numberReady || 0;
+          const status = readyNodes >= desiredNodes ? 'Active' : 'Warning';
+          
+          dependencies.push({
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            type: 'ingress-controller',
+            name: `nginx-ingress-${name}`,
+            namespace,
+            version,
+            status,
+            detectedAt: new Date().toISOString(),
+            metadata: {
+              kind: 'DaemonSet',
+              desiredNodes,
+              readyNodes,
+              labels
+            }
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error(`Error detecting cluster dependencies for ${clusterData.name}:`, error);
+    }
+    
+    return { 
+      ...clusterData, 
+      namespacesCollection: namespacesData,
+      dependencies: dependencies 
+    };
   } catch (error) {
     console.error(`Error enriching cluster data for ${clusterData.name}:`, error);
     return clusterData;
