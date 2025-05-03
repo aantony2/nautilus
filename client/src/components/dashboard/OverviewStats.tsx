@@ -7,8 +7,28 @@ interface OverviewStatsProps {
   stats: OverviewStatsData;
 }
 
+interface DetailItem {
+  label: string;
+  value: number;
+  color?: string;
+}
+
 export default function OverviewStats({ stats }: OverviewStatsProps) {
-  const cards = [
+  interface CardType {
+    title: string;
+    value: number;
+    change: number;
+    icon: React.ElementType;
+    color: string;
+    details?: DetailItem[];
+    progress?: {
+      percentage: number;
+      label1: string;
+      label2: string;
+    };
+  }
+  
+  const cards: CardType[] = [
     {
       title: "Total Clusters",
       value: stats.totalClusters,
