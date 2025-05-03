@@ -10,31 +10,39 @@ import { Search, RefreshCw, Bell, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import { 
+  ClusterData, 
+  OverviewStatsData, 
+  ResourceUtilizationData, 
+  ServiceHealthData, 
+  EventData, 
+  WorkloadData 
+} from "@shared/schema";
 
 export default function Dashboard() {
   const { toast } = useToast();
   
-  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery({
+  const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery<OverviewStatsData>({
     queryKey: ['/api/stats'],
   });
   
-  const { data: clusters, isLoading: clustersLoading, refetch: refetchClusters } = useQuery({
+  const { data: clusters, isLoading: clustersLoading, refetch: refetchClusters } = useQuery<ClusterData[]>({
     queryKey: ['/api/clusters'],
   });
   
-  const { data: utilization, isLoading: utilizationLoading, refetch: refetchUtilization } = useQuery({
+  const { data: utilization, isLoading: utilizationLoading, refetch: refetchUtilization } = useQuery<ResourceUtilizationData>({
     queryKey: ['/api/utilization'],
   });
   
-  const { data: services, isLoading: servicesLoading, refetch: refetchServices } = useQuery({
+  const { data: services, isLoading: servicesLoading, refetch: refetchServices } = useQuery<ServiceHealthData[]>({
     queryKey: ['/api/services'],
   });
   
-  const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = useQuery({
+  const { data: events, isLoading: eventsLoading, refetch: refetchEvents } = useQuery<EventData[]>({
     queryKey: ['/api/events'],
   });
   
-  const { data: workloads, isLoading: workloadsLoading, refetch: refetchWorkloads } = useQuery({
+  const { data: workloads, isLoading: workloadsLoading, refetch: refetchWorkloads } = useQuery<WorkloadData>({
     queryKey: ['/api/workloads'],
   });
 
@@ -59,10 +67,10 @@ export default function Dashboard() {
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
+        <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white">Multi-Cluster Management</h1>
+              <h1 className="text-lg font-semibold text-white mr-4">Multi-Cluster Management</h1>
             </div>
             <div className="flex items-center space-x-4">
               <Button
@@ -70,16 +78,17 @@ export default function Dashboard() {
                 size="icon"
                 onClick={refreshData}
                 disabled={isLoading}
+                className="text-slate-400 hover:text-white"
               >
                 <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
               </Button>
               <div className="relative">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
                   <Bell className="h-5 w-5" />
                 </Button>
                 <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
               </div>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="text-slate-400 hover:text-white">
                 <Settings className="h-5 w-5" />
               </Button>
             </div>

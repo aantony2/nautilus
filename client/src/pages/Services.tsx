@@ -43,13 +43,11 @@ export default function Services() {
   return (
     <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
+        {/* Header with integrated search */}
+        <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white">Services</h1>
-            </div>
-            <div className="flex items-center space-x-3">
+              <h1 className="text-lg font-semibold text-white mr-4">Services</h1>
               <div className="relative rounded-md w-64">
                 <Input
                   type="text"
