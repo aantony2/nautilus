@@ -11,7 +11,10 @@ import {
   CheckCircle,
   AlertTriangle,
   MessagesSquare,
-  FileDown
+  FileDown,
+  Box,
+  Layers,
+  FolderClosed
 } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -310,7 +313,7 @@ export default function Namespaces() {
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
                                   <div className="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-md bg-slate-700">
-                                    <MessagesSquare className="h-4 w-4 text-primary" />
+                                    <Layers className="h-4 w-4 text-primary" />
                                   </div>
                                   <div className="ml-4">
                                     <div className="text-sm font-medium text-white">{namespace.name}</div>
