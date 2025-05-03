@@ -80,7 +80,7 @@ export default function MainSidebar({ className }: SidebarProps) {
       <div 
         className={cn(
           "transition-all duration-300 ease-in-out md:flex md:flex-col bg-slate-800 border-r border-slate-700 fixed h-full z-40",
-          sidebarVisible ? "md:w-64" : "md:w-16",
+          sidebarVisible ? "md:w-56" : "md:w-16",
           className
         )}
       >
@@ -110,7 +110,7 @@ export default function MainSidebar({ className }: SidebarProps) {
                 <path d="M12 16L19.36 10.27C21.5 8.58 21.5 5.42 19.36 3.73C17.22 2.04 13.78 2.04 11.64 3.73L4.27 9.46C3.16 10.33 3.16 12.67 4.27 13.54L11.64 19.27C13.78 20.96 17.22 20.96 19.36 19.27C21.5 17.58 21.5 14.42 19.36 12.73L12 7"></path>
               )}
             </svg>
-            {sidebarVisible && <h1 className="text-xl font-bold text-white">{appSettings.productName}</h1>}
+            {sidebarVisible && <h1 className="text-lg font-bold text-white truncate">{appSettings.productName}</h1>}
           </div>
           
           <ScrollArea className="flex-1 px-3">
