@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,24 +6,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Database, Save, RefreshCw, Settings as SettingsIcon, CircleCheck } from "lucide-react";
-import { useQuery, useMutation, QueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+
+// Define the database settings type
+interface DatabaseSettings {
+  host: string;
+  port: string;
+  user: string;
+  password: string;
+  database: string;
+  ssl: boolean;
+  connectionTimeout: string;
+}
+
+// Define test connection result type
+interface ConnectionTestResult {
+  success: boolean;
+  message: string;
+}
 
 export default function Settings() {
   const { toast } = useToast();
   const [isTesting, setIsTesting] = useState(false);
-  const [connectionTestResult, setConnectionTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
+  const [connectionTestResult, setConnectionTestResult] = useState<ConnectionTestResult | null>(null);
 
   // Get current database settings
-  const { data: dbSettings, isLoading } = useQuery({
+  const { data: dbSettings, isLoading } = useQuery<DatabaseSettings>({
     queryKey: ['/api/settings/database'],
   });
 
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<DatabaseSettings>({
     host: "",
     port: "",
     user: "",
@@ -34,7 +48,7 @@ export default function Settings() {
   });
 
   // Update form when settings are loaded
-  useState(() => {
+  useEffect(() => {
     if (dbSettings) {
       setFormData({
         host: dbSettings.host || "",
@@ -46,7 +60,7 @@ export default function Settings() {
         connectionTimeout: dbSettings.connectionTimeout || "5000"
       });
     }
-  });
+  }, [dbSettings]);
 
   // Update form fields
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,15 +114,18 @@ export default function Settings() {
   // Save database settings
   const saveSettingsMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest('/api/settings/database', {
+      return await apiRequest<{ success: boolean; message: string }>('/api/settings/database', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(formData),
       });
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Settings saved",
-        description: "Database connection settings have been updated.",
+        description: data.message || "Database connection settings have been updated.",
       });
     },
     onError: (error) => {
