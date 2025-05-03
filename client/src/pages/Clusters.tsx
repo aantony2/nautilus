@@ -29,11 +29,8 @@ export default function Clusters() {
           {isLoading ? (
             <Skeleton className="h-96 w-full" />
           ) : (
-            <ClusterStatusTable clusters={filteredClusters} />
+            <ClusterStatusTable clusters={clusters || []} />
           )}
-          <div className="text-xs text-slate-500 mt-2 text-right">
-            Showing {filteredClusters.length} of {clusters?.length || 0} clusters
-          </div>
         </main>
       </div>
     </div>

@@ -97,6 +97,9 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
             </SelectContent>
           </Select>
         </div>
+        <div className="text-xs text-slate-400">
+          Showing {filteredClusters.length} of {clusters.length} clusters
+        </div>
       </div>
 
       <div className="bg-slate-800 rounded-lg shadow-lg overflow-hidden">
