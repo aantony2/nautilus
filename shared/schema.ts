@@ -262,3 +262,37 @@ export interface NamespaceData {
   resourceQuota: boolean;
   createdAt: string;
 }
+
+// Cluster Dependencies
+export const clusterDependencies = pgTable("cluster_dependencies", {
+  id: serial("id").primaryKey(),
+  clusterId: text("cluster_id").notNull().references(() => clusters.clusterId),
+  type: text("type").notNull(), // e.g., "ingress-controller", "service-mesh", etc.
+  name: text("name").notNull(), // e.g., "nginx-ingress", "istio", etc.
+  namespace: text("namespace").notNull(),
+  version: text("version"),
+  status: text("status").notNull(), // "Active", "Pending", etc.
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+  metadata: jsonb("metadata"), // Additional information, configuration, etc.
+});
+
+export const insertClusterDependencySchema = createInsertSchema(clusterDependencies).omit({ 
+  id: true,
+  detectedAt: true 
+});
+
+export type InsertClusterDependency = z.infer<typeof insertClusterDependencySchema>;
+export type ClusterDependency = typeof clusterDependencies.$inferSelect;
+
+// Cluster dependency data interface for API responses
+export interface ClusterDependencyData {
+  id: number;
+  clusterId: string;
+  type: string;
+  name: string;
+  namespace: string;
+  version?: string;
+  status: string;
+  detectedAt: string;
+  metadata?: Record<string, any>;
+}

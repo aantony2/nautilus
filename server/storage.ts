@@ -36,6 +36,14 @@ export interface IStorage {
   getNamespacesByCluster(clusterId: string): Promise<NamespaceData[]>;
   getNamespaceById(id: number): Promise<NamespaceData | undefined>;
   createNamespace(namespace: InsertNamespace): Promise<Namespace>;
+  
+  // Cluster Dependency methods
+  getClusterDependencies(): Promise<ClusterDependencyData[]>;
+  getClusterDependenciesByType(type: string): Promise<ClusterDependencyData[]>; 
+  getClusterDependenciesByCluster(clusterId: string): Promise<ClusterDependencyData[]>;
+  getClusterDependencyById(id: number): Promise<ClusterDependencyData | undefined>;
+  createClusterDependency(dependency: InsertClusterDependency): Promise<ClusterDependency>;
+  deleteClusterDependenciesByCluster(clusterId: string): Promise<void>;
 }
 
 // Database implementation of storage
@@ -429,6 +437,165 @@ export class DatabaseStorage implements IStorage {
       return namespace;
     } catch (error) {
       console.error("Error creating namespace in database:", error);
+      throw error;
+    }
+  }
+  
+  // Cluster Dependency methods
+  async getClusterDependencies(): Promise<ClusterDependencyData[]> {
+    try {
+      const result = await db.select({
+        id: clusterDependencies.id,
+        clusterId: clusterDependencies.clusterId,
+        type: clusterDependencies.type,
+        name: clusterDependencies.name,
+        namespace: clusterDependencies.namespace,
+        version: clusterDependencies.version,
+        status: clusterDependencies.status,
+        detectedAt: clusterDependencies.detectedAt,
+        metadata: clusterDependencies.metadata
+      })
+      .from(clusterDependencies)
+      .innerJoin(clusters, eq(clusterDependencies.clusterId, clusters.clusterId));
+      
+      return result.map(dep => ({
+        id: dep.id,
+        clusterId: dep.clusterId,
+        type: dep.type,
+        name: dep.name,
+        namespace: dep.namespace,
+        version: dep.version || undefined,
+        status: dep.status,
+        detectedAt: dep.detectedAt ? new Date(dep.detectedAt).toISOString() : new Date().toISOString(),
+        metadata: dep.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error("Error fetching cluster dependencies from database:", error);
+      return [];
+    }
+  }
+  
+  async getClusterDependenciesByType(type: string): Promise<ClusterDependencyData[]> {
+    try {
+      const result = await db.select({
+        id: clusterDependencies.id,
+        clusterId: clusterDependencies.clusterId,
+        type: clusterDependencies.type,
+        name: clusterDependencies.name,
+        namespace: clusterDependencies.namespace,
+        version: clusterDependencies.version,
+        status: clusterDependencies.status,
+        detectedAt: clusterDependencies.detectedAt,
+        metadata: clusterDependencies.metadata
+      })
+      .from(clusterDependencies)
+      .where(eq(clusterDependencies.type, type));
+      
+      return result.map(dep => ({
+        id: dep.id,
+        clusterId: dep.clusterId,
+        type: dep.type,
+        name: dep.name,
+        namespace: dep.namespace,
+        version: dep.version || undefined,
+        status: dep.status,
+        detectedAt: dep.detectedAt ? new Date(dep.detectedAt).toISOString() : new Date().toISOString(),
+        metadata: dep.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error(`Error fetching cluster dependencies of type ${type} from database:`, error);
+      return [];
+    }
+  }
+  
+  async getClusterDependenciesByCluster(clusterId: string): Promise<ClusterDependencyData[]> {
+    try {
+      const result = await db.select({
+        id: clusterDependencies.id,
+        clusterId: clusterDependencies.clusterId,
+        type: clusterDependencies.type,
+        name: clusterDependencies.name,
+        namespace: clusterDependencies.namespace,
+        version: clusterDependencies.version,
+        status: clusterDependencies.status,
+        detectedAt: clusterDependencies.detectedAt,
+        metadata: clusterDependencies.metadata
+      })
+      .from(clusterDependencies)
+      .where(eq(clusterDependencies.clusterId, clusterId));
+      
+      return result.map(dep => ({
+        id: dep.id,
+        clusterId: dep.clusterId,
+        type: dep.type,
+        name: dep.name,
+        namespace: dep.namespace,
+        version: dep.version || undefined,
+        status: dep.status,
+        detectedAt: dep.detectedAt ? new Date(dep.detectedAt).toISOString() : new Date().toISOString(),
+        metadata: dep.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error(`Error fetching dependencies for cluster ${clusterId} from database:`, error);
+      return [];
+    }
+  }
+  
+  async getClusterDependencyById(id: number): Promise<ClusterDependencyData | undefined> {
+    try {
+      const [dependency] = await db.select({
+        id: clusterDependencies.id,
+        clusterId: clusterDependencies.clusterId,
+        type: clusterDependencies.type,
+        name: clusterDependencies.name,
+        namespace: clusterDependencies.namespace,
+        version: clusterDependencies.version,
+        status: clusterDependencies.status,
+        detectedAt: clusterDependencies.detectedAt,
+        metadata: clusterDependencies.metadata
+      })
+      .from(clusterDependencies)
+      .where(eq(clusterDependencies.id, id));
+      
+      if (!dependency) return undefined;
+      
+      return {
+        id: dependency.id,
+        clusterId: dependency.clusterId,
+        type: dependency.type,
+        name: dependency.name,
+        namespace: dependency.namespace,
+        version: dependency.version || undefined,
+        status: dependency.status,
+        detectedAt: dependency.detectedAt ? new Date(dependency.detectedAt).toISOString() : new Date().toISOString(),
+        metadata: dependency.metadata as Record<string, any> || {}
+      };
+    } catch (error) {
+      console.error(`Error fetching dependency with ID ${id} from database:`, error);
+      return undefined;
+    }
+  }
+  
+  async createClusterDependency(dependency: InsertClusterDependency): Promise<ClusterDependency> {
+    try {
+      const [newDependency] = await db
+        .insert(clusterDependencies)
+        .values(dependency)
+        .returning();
+      return newDependency;
+    } catch (error) {
+      console.error(`Error creating cluster dependency ${dependency.name}:`, error);
+      throw error;
+    }
+  }
+  
+  async deleteClusterDependenciesByCluster(clusterId: string): Promise<void> {
+    try {
+      await db
+        .delete(clusterDependencies)
+        .where(eq(clusterDependencies.clusterId, clusterId));
+    } catch (error) {
+      console.error(`Error deleting dependencies for cluster ${clusterId}:`, error);
       throw error;
     }
   }
