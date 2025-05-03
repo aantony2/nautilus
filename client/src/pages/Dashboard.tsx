@@ -111,7 +111,7 @@ export default function Dashboard() {
           {clustersLoading ? (
             <Skeleton className="h-96 w-full mb-6" />
           ) : (
-            <ClusterStatusTable clusters={clusters || []} />
+            <ClusterStatusTable clusters={clusters || []} filteredClusters={clusters || []} />
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
