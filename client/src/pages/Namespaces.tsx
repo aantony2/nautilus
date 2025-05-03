@@ -208,22 +208,22 @@ export default function Namespaces() {
           <div className="space-y-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader className="pb-3">
-                <div className="flex justify-end">
-                  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
-                    <div className="relative w-64 mr-2">
+                <div className="flex flex-col w-full space-y-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full justify-end">
+                    <div className="relative w-full sm:w-64">
                       <Input
                         type="text"
                         placeholder="Search namespaces..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-white pl-10"
+                        className="bg-slate-700 border-slate-600 text-white pl-10 w-full"
                       />
                       <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-[130px] bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="w-full sm:w-[130px] bg-slate-700 border-slate-600 text-white">
                           <div className="flex items-center">
                             <Filter className="h-3.5 w-3.5 mr-2" />
                             <SelectValue placeholder="Status" />
@@ -239,7 +239,7 @@ export default function Namespaces() {
                         value={clusterFilter}
                         onValueChange={setClusterFilter}
                       >
-                        <SelectTrigger className="w-[130px] bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="w-full sm:w-[130px] bg-slate-700 border-slate-600 text-white">
                           <div className="flex items-center">
                             <Server className="h-3.5 w-3.5 mr-2" />
                             <SelectValue placeholder="Cluster" />
@@ -260,7 +260,7 @@ export default function Namespaces() {
                         size="icon" 
                         onClick={exportToCSV}
                         title="Export to CSV"
-                        className="ml-2 text-slate-400 hover:text-white"
+                        className="ml-auto text-slate-400 hover:text-white"
                       >
                         <FileDown className="h-5 w-5" />
                       </Button>
@@ -271,28 +271,28 @@ export default function Namespaces() {
               <CardContent>
                 <div className="bg-slate-800 rounded-lg shadow-lg overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-700">
+                    <table className="min-w-full divide-y divide-slate-700 table-fixed">
                       <thead className="bg-slate-900">
                         <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-[22%]">
                             Name
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-[18%]">
                             Cluster
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-[12%]">
                             Status
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-[8%]">
                             Age
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-[10%]">
                             Pod Count
                           </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider w-[20%]">
                             Labels
                           </th>
-                          <th scope="col" className="relative px-6 py-3">
+                          <th scope="col" className="relative px-6 py-3 w-[10%]">
                             <span className="sr-only">Actions</span>
                           </th>
                         </tr>
@@ -340,15 +340,15 @@ export default function Namespaces() {
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
                                 {namespace.podCount}
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex flex-wrap gap-1 max-w-xs">
+                              <td className="px-6 py-4">
+                                <div className="flex flex-wrap gap-1 overflow-hidden">
                                   {renderLabels(namespace.labels)}
                                   {Object.keys(namespace.labels).length > 3 && (
                                     <TooltipProvider>
                                       <Tooltip>
                                         <TooltipTrigger asChild>
-                                          <Badge className="bg-slate-600 hover:bg-slate-500">
-                                            +{Object.keys(namespace.labels).length - 3} more
+                                          <Badge className="bg-slate-600 hover:bg-slate-500 text-white">
+                                            +{Object.keys(namespace.labels).length - 3}
                                           </Badge>
                                         </TooltipTrigger>
                                         <TooltipContent className="bg-slate-700 border-slate-600 p-2 text-xs max-w-md">
@@ -422,8 +422,8 @@ export default function Namespaces() {
                               key={label} 
                               className="flex justify-between items-center text-sm"
                             >
-                              <Badge className="bg-indigo-600">{label}</Badge>
-                              <span className="text-slate-400">
+                              <Badge className="bg-indigo-600 truncate max-w-[150px]" title={label}>{label}</Badge>
+                              <span className="text-slate-400 flex-shrink-0">
                                 {count} {count === 1 ? 'namespace' : 'namespaces'}
                               </span>
                             </div>
@@ -453,8 +453,8 @@ export default function Namespaces() {
                               key={cluster} 
                               className="flex justify-between items-center text-sm"
                             >
-                              <span className="text-white">{cluster}</span>
-                              <span className="text-slate-400">
+                              <span className="text-white truncate max-w-[120px]" title={cluster}>{cluster}</span>
+                              <span className="text-slate-400 flex-shrink-0">
                                 {count} {count === 1 ? 'namespace' : 'namespaces'}
                               </span>
                             </div>
