@@ -69,8 +69,9 @@ export default function Dashboard() {
         {/* Header */}
         <header className="bg-slate-800 border-b border-slate-700 shadow-sm sticky top-0 z-10">
           <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex items-center">
-              <h1 className="text-lg font-semibold text-white mr-4">Multi-Cluster Management</h1>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-semibold text-white">Dashboard</h1>
+              <p className="text-sm text-slate-400">Overview of your Kubernetes clusters</p>
             </div>
             <div className="flex items-center space-x-4">
               <Button
