@@ -548,6 +548,51 @@ export class DatabaseStorage implements IStorage {
         services: 10,
         deployments: 12,
         ingresses: 2
+      },
+      {
+        clusterId: "eks-prod-useast1",
+        name: "eks-prod-useast1",
+        provider: "EKS",
+        version: "1.26.4",
+        versionStatus: "Up to date",
+        region: "us-east-1",
+        status: "Healthy",
+        nodesTotal: 10,
+        nodesReady: 10,
+        podsTotal: 380,
+        podsRunning: 342,
+        namespaces: 12,
+        services: 24,
+        deployments: 30,
+        ingresses: 7,
+        metadata: {
+          events: [
+            {
+              timestamp: "2023-07-18T09:15:00Z",
+              severity: "info",
+              message: "Kubernetes version update completed",
+              source: "cluster-updater"
+            }
+          ],
+          nodes: [
+            {
+              name: "eks-prod-useast1-node-01",
+              status: "Ready",
+              role: "Worker",
+              cpu: "4 cores / 68%",
+              memory: "16GB / 72%",
+              pods: "28/30"
+            },
+            {
+              name: "eks-prod-useast1-node-02",
+              status: "Ready",
+              role: "Worker",
+              cpu: "4 cores / 70%",
+              memory: "16GB / 65%",
+              pods: "27/30"
+            }
+          ]
+        }
       }
     ];
     
@@ -659,6 +704,75 @@ export class DatabaseStorage implements IStorage {
             "kubernetes.io/description": "Database services"
           },
           podCount: 6,
+          resourceQuota: true
+        },
+        // eks-prod-useast1 namespaces
+        {
+          clusterId: "eks-prod-useast1",
+          name: "default",
+          status: "Active",
+          age: "180d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "default",
+            "environment": "production" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "Default namespace"
+          },
+          podCount: 8,
+          resourceQuota: false
+        },
+        {
+          clusterId: "eks-prod-useast1",
+          name: "kube-system",
+          status: "Active",
+          age: "180d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "kube-system",
+            "environment": "system" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "System components"
+          },
+          podCount: 15,
+          resourceQuota: false
+        },
+        {
+          clusterId: "eks-prod-useast1",
+          name: "microservices",
+          status: "Active",
+          age: "156d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "microservices",
+            "environment": "production",
+            "app": "services",
+            "team": "platform" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "Microservices environment"
+          },
+          podCount: 32,
+          resourceQuota: true
+        },
+        {
+          clusterId: "eks-prod-useast1",
+          name: "data-analytics",
+          status: "Active",
+          age: "98d",
+          phase: "Active",
+          labels: { 
+            "kubernetes.io/metadata.name": "data-analytics",
+            "environment": "production",
+            "app": "analytics",
+            "team": "data" 
+          },
+          annotations: { 
+            "kubernetes.io/description": "Data analytics services"
+          },
+          podCount: 18,
           resourceQuota: true
         }
       ];

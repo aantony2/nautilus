@@ -34,7 +34,7 @@ function AppLayout() {
       <DynamicStyles />
       <MainSidebar />
       <div className={cn(
-        "transition-all duration-300 ease-in-out p-6 pt-16 md:p-8 md:pt-8 bg-slate-900 min-h-screen",
+        "transition-all duration-300 ease-in-out p-0 bg-slate-900 min-h-screen",
         sidebarVisible ? "md:ml-56" : "md:ml-16"
       )}>
         <Switch>

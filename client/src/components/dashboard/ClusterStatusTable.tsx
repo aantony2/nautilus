@@ -95,6 +95,7 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
               <SelectItem value="all">All Providers</SelectItem>
               <SelectItem value="GKE">GKE</SelectItem>
               <SelectItem value="AKS">AKS</SelectItem>
+              <SelectItem value="EKS">EKS</SelectItem>
             </SelectContent>
           </Select>
           
@@ -185,10 +186,16 @@ export default function ClusterStatusTable({ clusters }: ClusterStatusTableProps
                               <path fill="#4285F4" d="M12 7.5L7.5 12 12 16.5 16.5 12 12 7.5z"/>
                               <path fill="#EA4335" d="M12 1.5L3 12l9 10.5 9-10.5L12 1.5zm0 6L16.5 12 12 16.5 7.5 12 12 7.5z"/>
                             </svg>
-                          ) : (
+                          ) : cluster.provider === "AKS" ? (
                             <svg viewBox="0 0 24 24" width="16" height="16" className="mr-2">
                               <path fill="#0078D4" d="M12 2L3 7v10l9 5 9-5V7l-9-5zm0 2.5L17.5 8 12 11.5 6.5 8 12 4.5z"/>
                               <path fill="#50E6FF" d="M12 11.5L6.5 8v6.5l5.5 3 5.5-3V8L12 11.5z"/>
+                            </svg>
+                          ) : (
+                            <svg viewBox="0 0 24 24" width="16" height="16" className="mr-2">
+                              <path fill="#FF9900" d="M18.7 10.3L17 9.2l-1.7-1-1.7-1.1V4.9l1.7-1 1.7-1 1.7 1.1v2.2zm0 8.8l-1.7-1-1.7-1-1.7-1.1v-2.2l1.7-1 1.7-1 1.7 1.1v2.2z"/>
+                              <path fill="#FF9900" d="M12 13.6L10.3 12.5 8.6 11.5 6.9 10.4V8.2l1.7-1 1.7-1L12 7.3v2.1zm0 8.8l-1.7-1-1.7-1L6.9 19.3v-2.2l1.7-1 1.7-1L12 16.1v2.2z"/>
+                              <path fill="#232F3E" d="M12.8 13.2L12 12.7l-.8-.5V11l.8-.5.8-.5.8.5v1.2zm8.8-5L20.8 7.7 20 7.2v-1.2l.8-.5.8-.5.8.5v1.2z"/>
                             </svg>
                           )}
                           <span>{cluster.provider}</span>
