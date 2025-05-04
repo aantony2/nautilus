@@ -1,659 +1,567 @@
-import { useQuery } from "@tanstack/react-query";
-// Sidebar is now managed by App.tsx
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, Router, Globe, Network, Check, AlertTriangle, Activity, ExternalLink, Shield } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Link } from 'wouter';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  AlertCircle,
+  CheckCircle2,
+  ExternalLink,
+  FilterIcon,
+  Search,
+  Server,
+  Shield,
+  TrendingUp,
+  Workflow,
+} from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { NetworkIngressControllerData, NetworkLoadBalancerData, NetworkRouteData, NetworkPolicyData } from '@shared/schema';
+
+interface NetworkResourcesData {
+  ingressControllers: NetworkIngressControllerData[];
+  loadBalancers: NetworkLoadBalancerData[];
+  routes: NetworkRouteData[];
+  policies: NetworkPolicyData[];
+}
 
 export default function Networking() {
-  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('ingress');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [clusterFilter, setClusterFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState('all');
   
-  const refreshData = () => {
-    toast({
-      title: "Network data refreshed",
-      description: "Network data has been updated",
+  // Fetch network resources
+  const { data, isLoading, error } = useQuery<NetworkResourcesData>({
+    queryKey: ['/api/network/resources'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Fetch clusters for filter dropdown
+  const { data: clusters } = useQuery({
+    queryKey: ['/api/clusters'],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Filter and search functions
+  const getFilteredIngressControllers = () => {
+    if (!data?.ingressControllers) return [];
+    
+    return data.ingressControllers.filter(ic => {
+      const matchesSearch = 
+        searchQuery === '' || 
+        ic.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ic.namespace.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ic.type.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCluster = clusterFilter === 'all' || ic.clusterId === clusterFilter;
+      const matchesType = typeFilter === 'all' || ic.type === typeFilter;
+      
+      return matchesSearch && matchesCluster && matchesType;
     });
   };
-  
-  return (
-    <div className="flex h-screen overflow-hidden bg-slate-900 text-slate-50">
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-slate-800 border-b border-slate-700 shadow-sm">
-          <div className="flex items-center justify-between px-4 py-3">
-            <div className="flex flex-col">
-              <h1 className="text-xl font-semibold text-white">Networking</h1>
-              <p className="text-sm text-slate-400">View all networking details</p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={refreshData}>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Data
-              </Button>
-            </div>
-          </div>
-        </header>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-slate-900 p-4">
-          <Tabs defaultValue="ingress">
-            <TabsList className="mb-6">
-              <TabsTrigger value="ingress">Ingress</TabsTrigger>
-              <TabsTrigger value="services">Services</TabsTrigger>
-              <TabsTrigger value="routing">Routing</TabsTrigger>
-              <TabsTrigger value="policies">Network Policies</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="ingress">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="bg-slate-800 border-slate-700 shadow-md">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Ingress Controllers</CardTitle>
-                      <Globe className="h-5 w-5 text-primary" />
-                    </div>
-                    <CardDescription>Manage external access to your services</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Cluster</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Endpoints</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            nginx-ingress-controller
-                            <div className="text-xs text-slate-400 mt-1">kube-system namespace</div>
-                          </TableCell>
-                          <TableCell>gke-prod-cluster1</TableCell>
-                          <TableCell>Nginx Ingress</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Healthy</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>7</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            istio-ingressgateway
-                            <div className="text-xs text-slate-400 mt-1">istio-system namespace</div>
-                          </TableCell>
-                          <TableCell>gke-prod-cluster1</TableCell>
-                          <TableCell>Istio Gateway</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Healthy</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>3</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            traefik-controller
-                            <div className="text-xs text-slate-400 mt-1">traefik namespace</div>
-                          </TableCell>
-                          <TableCell>aks-dev-cluster2</TableCell>
-                          <TableCell>Traefik</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <AlertTriangle size={16} className="text-yellow-500 mr-1" />
-                              <span>Warning</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>5</TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            kong-ingress
-                            <div className="text-xs text-slate-400 mt-1">kong namespace</div>
-                          </TableCell>
-                          <TableCell>eks-stage-cluster1</TableCell>
-                          <TableCell>Kong</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Healthy</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>2</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                    <div className="flex justify-end mt-4">
-                      <Button variant="outline" size="sm">
-                        <ExternalLink size={14} className="mr-2" />
-                        View All Ingress Controllers
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-                
-                <Card className="bg-slate-800 border-slate-700 shadow-md">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Load Balancers</CardTitle>
-                      <Router className="h-5 w-5 text-info" />
-                    </div>
-                    <CardDescription>External traffic distribution</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>IP Address</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Traffic</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            frontend-lb
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-blue-950 text-blue-300 border-blue-800">
-                              External
-                            </Badge>
-                          </TableCell>
-                          <TableCell>35.233.178.12</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Active</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Activity size={14} className="text-blue-400 mr-2" />
-                              <span>3.7k req/s</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            api-gateway-lb
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-blue-950 text-blue-300 border-blue-800">
-                              External
-                            </Badge>
-                          </TableCell>
-                          <TableCell>35.233.179.87</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Active</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Activity size={14} className="text-blue-400 mr-2" />
-                              <span>1.2k req/s</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            internal-services-lb
-                            <div className="text-xs text-slate-400 mt-1">aks-dev-cluster2</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-purple-950 text-purple-300 border-purple-800">
-                              Internal
-                            </Badge>
-                          </TableCell>
-                          <TableCell>10.0.12.45</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Active</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Activity size={14} className="text-blue-400 mr-2" />
-                              <span>856 req/s</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            admin-portal-lb
-                            <div className="text-xs text-slate-400 mt-1">eks-stage-cluster1</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-blue-950 text-blue-300 border-blue-800">
-                              External
-                            </Badge>
-                          </TableCell>
-                          <TableCell>54.192.145.78</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <AlertTriangle size={16} className="text-yellow-500 mr-1" />
-                              <span>Degraded</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Activity size={14} className="text-yellow-400 mr-2" />
-                              <span>235 req/s</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                    <div className="flex justify-end mt-4">
-                      <Button variant="outline" size="sm">
-                        <ExternalLink size={14} className="mr-2" />
-                        View All Load Balancers
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="services">
-              <Card className="bg-slate-800 border-slate-700 shadow-md">
-                <CardHeader>
-                  <CardTitle>Service Mesh</CardTitle>
-                  <CardDescription>Service-to-service communication</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center text-slate-400 py-20">
-                    Service mesh monitoring will be implemented in future updates
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="routing">
-              <div className="grid grid-cols-1 gap-6">
-                <Card className="bg-slate-800 border-slate-700 shadow-md">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Traffic Routes</CardTitle>
-                      <Network className="h-5 w-5 text-secondary" />
-                    </div>
-                    <CardDescription>Traffic routing and management rules</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Source</TableHead>
-                          <TableHead>Destination</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            api-gateway-route
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>External</TableCell>
-                          <TableCell>api-gateway.default.svc</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
-                              HTTP
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Active</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            frontend-backend-route
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>frontend.default.svc</TableCell>
-                          <TableCell>backend-api.default.svc</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-blue-950 text-blue-300 border-blue-800">
-                              gRPC
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Active</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            admin-portal-route
-                            <div className="text-xs text-slate-400 mt-1">eks-stage-cluster1</div>
-                          </TableCell>
-                          <TableCell>External</TableCell>
-                          <TableCell>admin-portal.default.svc</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
-                              HTTP
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <AlertTriangle size={16} className="text-yellow-500 mr-1" />
-                              <span>Degraded</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            microservice-a-b-route
-                            <div className="text-xs text-slate-400 mt-1">aks-dev-cluster2</div>
-                          </TableCell>
-                          <TableCell>service-a.apps.svc</TableCell>
-                          <TableCell>service-b.apps.svc</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-purple-950 text-purple-300 border-purple-800">
-                              TCP
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Active</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            auth-service-route
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>gateway.istio-system.svc</TableCell>
-                          <TableCell>auth.security.svc</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
-                              HTTP
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Active</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                    <div className="flex justify-end mt-4">
-                      <Button variant="outline" size="sm">
-                        <ExternalLink size={14} className="mr-2" />
-                        View All Routes
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+  const getFilteredLoadBalancers = () => {
+    if (!data?.loadBalancers) return [];
+    
+    return data.loadBalancers.filter(lb => {
+      const matchesSearch = 
+        searchQuery === '' || 
+        lb.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lb.namespace.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        lb.type.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCluster = clusterFilter === 'all' || lb.clusterId === clusterFilter;
+      const matchesType = typeFilter === 'all' || lb.type === typeFilter;
+      
+      return matchesSearch && matchesCluster && matchesType;
+    });
+  };
 
-                <Card className="bg-slate-800 border-slate-700 shadow-md">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Route Metrics</CardTitle>
-                      <Activity className="h-5 w-5 text-accent" />
-                    </div>
-                    <CardDescription>Traffic flow statistics</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Total Routes</div>
-                        <div className="text-2xl font-bold">17</div>
-                        <div className="text-xs text-green-400 mt-1 flex items-center">
-                          <Check size={12} className="mr-1" /> All healthy
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Total Traffic</div>
-                        <div className="text-2xl font-bold">8.4k req/s</div>
-                        <div className="text-xs text-green-400 mt-1 flex items-center">
-                          <span className="text-green-400 mr-1">↑</span> 12% from yesterday
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Avg. Latency</div>
-                        <div className="text-2xl font-bold">187ms</div>
-                        <div className="text-xs text-red-400 mt-1 flex items-center">
-                          <span className="text-red-400 mr-1">↑</span> 15ms increase
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Error Rate</div>
-                        <div className="text-2xl font-bold">0.12%</div>
-                        <div className="text-xs text-green-400 mt-1 flex items-center">
-                          <span className="text-green-400 mr-1">↓</span> 0.03% decrease
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="policies">
-              <div className="grid grid-cols-1 gap-6">
-                <Card className="bg-slate-800 border-slate-700 shadow-md">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Network Policies</CardTitle>
-                      <Shield className="h-5 w-5 text-primary" />
-                    </div>
-                    <CardDescription>Control traffic flow between pods and namespaces</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Namespace</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Direction</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            default-deny-ingress
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>default</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-red-950 text-red-300 border-red-800">
-                              Deny
-                            </Badge>
-                          </TableCell>
-                          <TableCell>Ingress</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Enforced</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            api-allow-frontend
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>api</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
-                              Allow
-                            </Badge>
-                          </TableCell>
-                          <TableCell>Ingress</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Enforced</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            database-restrict-access
-                            <div className="text-xs text-slate-400 mt-1">aks-dev-cluster2</div>
-                          </TableCell>
-                          <TableCell>database</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-yellow-950 text-yellow-300 border-yellow-800">
-                              Restrict
-                            </Badge>
-                          </TableCell>
-                          <TableCell>Ingress</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <AlertTriangle size={16} className="text-yellow-500 mr-1" />
-                              <span>Warning</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            microservices-allow-internal
-                            <div className="text-xs text-slate-400 mt-1">eks-stage-cluster1</div>
-                          </TableCell>
-                          <TableCell>microservices</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
-                              Allow
-                            </Badge>
-                          </TableCell>
-                          <TableCell>Egress</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Enforced</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <TableCell className="font-medium">
-                            monitoring-allow-all
-                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
-                          </TableCell>
-                          <TableCell>monitoring</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
-                              Allow
-                            </Badge>
-                          </TableCell>
-                          <TableCell>Egress</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
-                              <Check size={16} className="text-green-500 mr-1" />
-                              <span>Enforced</span>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                    <div className="flex justify-end mt-4">
-                      <Button variant="outline" size="sm">
-                        <ExternalLink size={14} className="mr-2" />
-                        View All Policies
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+  const getFilteredRoutes = () => {
+    if (!data?.routes) return [];
+    
+    return data.routes.filter(route => {
+      const matchesSearch = 
+        searchQuery === '' || 
+        route.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        route.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        route.destination.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        route.protocol.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCluster = clusterFilter === 'all' || route.clusterId === clusterFilter;
+      
+      return matchesSearch && matchesCluster;
+    });
+  };
 
-                <Card className="bg-slate-800 border-slate-700 shadow-md">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Policy Compliance</CardTitle>
-                      <Shield className="h-5 w-5 text-accent" />
-                    </div>
-                    <CardDescription>Compliance metrics and violations</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Total Policies</div>
-                        <div className="text-2xl font-bold">23</div>
-                        <div className="text-xs text-slate-400 mt-1">Across all clusters</div>
-                      </div>
-                      
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Compliance Rate</div>
-                        <div className="text-2xl font-bold">96.5%</div>
-                        <div className="text-xs text-green-400 mt-1 flex items-center">
-                          <span className="text-green-400 mr-1">↑</span> 2.1% increase
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Active Violations</div>
-                        <div className="text-2xl font-bold">3</div>
-                        <div className="text-xs text-yellow-400 mt-1 flex items-center">
-                          <AlertTriangle size={12} className="mr-1" /> Needs attention
-                        </div>
-                      </div>
-                      
-                      <div className="bg-slate-700/50 p-4 rounded-lg">
-                        <div className="text-xs text-slate-400 mb-1">Last Audit</div>
-                        <div className="text-2xl font-bold">2h ago</div>
-                        <div className="text-xs text-green-400 mt-1 flex items-center">
-                          <Check size={12} className="mr-1" /> Successful
-                        </div>
-                      </div>
-                    </div>
+  const getFilteredPolicies = () => {
+    if (!data?.policies) return [];
+    
+    return data.policies.filter(policy => {
+      const matchesSearch = 
+        searchQuery === '' || 
+        policy.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        policy.namespace.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        policy.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        policy.direction.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCluster = clusterFilter === 'all' || policy.clusterId === clusterFilter;
+      const matchesType = typeFilter === 'all' || policy.type === typeFilter;
+      
+      return matchesSearch && matchesCluster && matchesType;
+    });
+  };
 
-                    <div className="p-4 rounded-lg bg-yellow-900/20 border border-yellow-800 text-yellow-300 mb-4">
-                      <div className="flex items-start">
-                        <AlertTriangle className="h-5 w-5 mt-0.5 mr-2 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-medium mb-1">Warning: Policy Violation Detected</h4>
-                          <p className="text-sm text-yellow-300/80">
-                            The <strong>database-restrict-access</strong> policy has detected 2 unauthorized access attempts in the last hour.
-                            Please review the access logs and update the policy if needed.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+  // Get unique ingress controller types for filter
+  const getIngressControllerTypes = () => {
+    if (!data?.ingressControllers) return [];
+    const types = new Set(data.ingressControllers.map(ic => ic.type));
+    return Array.from(types);
+  };
 
-                    <div className="flex justify-end">
-                      <Button variant="outline" size="sm">
-                        <Shield size={14} className="mr-2" />
-                        Run Policy Audit
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </main>
+  // Get unique load balancer types for filter
+  const getLoadBalancerTypes = () => {
+    if (!data?.loadBalancers) return [];
+    const types = new Set(data.loadBalancers.map(lb => lb.type));
+    return Array.from(types);
+  };
+
+  // Get unique policy types for filter
+  const getPolicyTypes = () => {
+    if (!data?.policies) return [];
+    const types = new Set(data.policies.map(policy => policy.type));
+    return Array.from(types);
+  };
+
+  // Helper function to get cluster name from ID
+  const getClusterName = (clusterId: string) => {
+    if (!clusters) return clusterId;
+    const cluster = clusters.find(c => c.id === clusterId);
+    return cluster ? cluster.name : clusterId;
+  };
+
+  // Render status badge with appropriate color
+  const renderStatusBadge = (status: string) => {
+    let variant: "default" | "secondary" | "destructive" | "outline" = "default";
+    let icon = null;
+
+    if (status.toLowerCase() === 'healthy' || status.toLowerCase() === 'active') {
+      variant = "default";
+      icon = <CheckCircle2 className="mr-1 h-3 w-3" />;
+    } else if (status.toLowerCase() === 'warning' || status.toLowerCase() === 'degraded') {
+      variant = "outline";
+      icon = <AlertCircle className="mr-1 h-3 w-3 text-yellow-500" />;
+    } else if (status.toLowerCase() === 'error' || status.toLowerCase() === 'failed') {
+      variant = "destructive";
+      icon = <AlertCircle className="mr-1 h-3 w-3" />;
+    }
+
+    return (
+      <Badge variant={variant} className="flex items-center">
+        {icon}
+        {status}
+      </Badge>
+    );
+  };
+
+  // Render protocol badge with appropriate color
+  const renderProtocolBadge = (protocol: string) => {
+    let color = "";
+    
+    switch(protocol.toLowerCase()) {
+      case 'tcp':
+        color = "bg-blue-100 text-blue-800 border-blue-300";
+        break;
+      case 'udp':
+        color = "bg-purple-100 text-purple-800 border-purple-300";
+        break;
+      case 'http':
+        color = "bg-green-100 text-green-800 border-green-300";
+        break;
+      case 'https':
+        color = "bg-emerald-100 text-emerald-800 border-emerald-300";
+        break;
+      case 'grpc':
+        color = "bg-orange-100 text-orange-800 border-orange-300";
+        break;
+      default:
+        color = "bg-gray-100 text-gray-800 border-gray-300";
+    }
+    
+    return (
+      <span className={`inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium ${color}`}>
+        {protocol.toUpperCase()}
+      </span>
+    );
+  };
+
+  if (error) {
+    return (
+      <div className="container mx-auto p-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Network Resources</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Failed to load network resources. Please try refreshing the page.</p>
+            <Button variant="outline" className="mt-4" onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-3xl font-bold mb-6">Network Resources</h1>
+      
+      <div className="flex items-center mb-6">
+        <div className="relative flex-1 mr-4">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search network resources..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        
+        <Select value={clusterFilter} onValueChange={setClusterFilter}>
+          <SelectTrigger className="w-[180px] mr-4">
+            <SelectValue placeholder="Filter by Cluster" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Clusters</SelectItem>
+            {clusters && clusters.map(cluster => (
+              <SelectItem key={cluster.id} value={cluster.id}>{cluster.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {activeTab === 'ingress' && (
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {getIngressControllerTypes().map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {activeTab === 'loadbalancers' && (
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {getLoadBalancerTypes().map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
+        {activeTab === 'policies' && (
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {getPolicyTypes().map(type => (
+                <SelectItem key={type} value={type}>{type}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-4 mb-4">
+          <TabsTrigger value="ingress" className="flex items-center">
+            <Server className="mr-2 h-4 w-4" />
+            Ingress Controllers
+          </TabsTrigger>
+          <TabsTrigger value="loadbalancers" className="flex items-center">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Load Balancers
+          </TabsTrigger>
+          <TabsTrigger value="routes" className="flex items-center">
+            <Workflow className="mr-2 h-4 w-4" />
+            Traffic Routes
+          </TabsTrigger>
+          <TabsTrigger value="policies" className="flex items-center">
+            <Shield className="mr-2 h-4 w-4" />
+            Network Policies
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="ingress">
+          <Card>
+            <CardHeader>
+              <CardTitle>Ingress Controllers</CardTitle>
+              <CardDescription>
+                Network ingress controllers managing external access to services
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Cluster</TableHead>
+                      <TableHead>Namespace</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Version</TableHead>
+                      <TableHead>Traffic</TableHead>
+                      <TableHead>IP Address</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getFilteredIngressControllers().length > 0 ? (
+                      getFilteredIngressControllers().map((controller) => (
+                        <TableRow key={controller.id}>
+                          <TableCell className="font-medium">{controller.name}</TableCell>
+                          <TableCell>{getClusterName(controller.clusterId)}</TableCell>
+                          <TableCell>{controller.namespace}</TableCell>
+                          <TableCell>{controller.type}</TableCell>
+                          <TableCell>{renderStatusBadge(controller.status)}</TableCell>
+                          <TableCell>{controller.version}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <TrendingUp className="mr-2 h-4 w-4 text-green-500" />
+                              {controller.trafficHandled.toLocaleString()} req/s
+                            </div>
+                          </TableCell>
+                          <TableCell>{controller.ipAddress}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                          No ingress controllers found matching the current filters.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="loadbalancers">
+          <Card>
+            <CardHeader>
+              <CardTitle>Load Balancers</CardTitle>
+              <CardDescription>
+                Load balancers distributing network traffic to ensure availability and reliability
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Cluster</TableHead>
+                      <TableHead>Namespace</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Traffic</TableHead>
+                      <TableHead>IP Addresses</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getFilteredLoadBalancers().length > 0 ? (
+                      getFilteredLoadBalancers().map((lb) => (
+                        <TableRow key={lb.id}>
+                          <TableCell className="font-medium">{lb.name}</TableCell>
+                          <TableCell>{getClusterName(lb.clusterId)}</TableCell>
+                          <TableCell>{lb.namespace}</TableCell>
+                          <TableCell>{lb.type}</TableCell>
+                          <TableCell>{renderStatusBadge(lb.status)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <TrendingUp className="mr-2 h-4 w-4 text-green-500" />
+                              {lb.trafficHandled.toLocaleString()} Mbps
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {lb.ipAddresses.map((ip, index) => (
+                                <Badge key={index} variant="outline">{ip}</Badge>
+                              ))}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                          No load balancers found matching the current filters.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="routes">
+          <Card>
+            <CardHeader>
+              <CardTitle>Traffic Routes</CardTitle>
+              <CardDescription>
+                Network traffic routes between services and external destinations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Cluster</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Destination</TableHead>
+                      <TableHead>Protocol</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getFilteredRoutes().length > 0 ? (
+                      getFilteredRoutes().map((route) => (
+                        <TableRow key={route.id}>
+                          <TableCell className="font-medium">{route.name}</TableCell>
+                          <TableCell>{getClusterName(route.clusterId)}</TableCell>
+                          <TableCell>{route.source}</TableCell>
+                          <TableCell>{route.destination}</TableCell>
+                          <TableCell>{renderProtocolBadge(route.protocol)}</TableCell>
+                          <TableCell>{renderStatusBadge(route.status)}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                          No routes found matching the current filters.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="policies">
+          <Card>
+            <CardHeader>
+              <CardTitle>Network Policies</CardTitle>
+              <CardDescription>
+                Rules controlling traffic flow between pods and network endpoints
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4">
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Cluster</TableHead>
+                      <TableHead>Namespace</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Direction</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getFilteredPolicies().length > 0 ? (
+                      getFilteredPolicies().map((policy) => (
+                        <TableRow key={policy.id}>
+                          <TableCell className="font-medium">{policy.name}</TableCell>
+                          <TableCell>{getClusterName(policy.clusterId)}</TableCell>
+                          <TableCell>{policy.namespace}</TableCell>
+                          <TableCell>{policy.type}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {policy.direction}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{renderStatusBadge(policy.status)}</TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                          No policies found matching the current filters.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
