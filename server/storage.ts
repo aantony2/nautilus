@@ -56,6 +56,26 @@ export interface IStorage {
   getClusterDependencyById(id: number): Promise<ClusterDependencyData | undefined>;
   createClusterDependency(dependency: InsertClusterDependency): Promise<ClusterDependency>;
   deleteClusterDependenciesByCluster(clusterId: string): Promise<void>;
+  
+  // Network Ingress Controller methods
+  getNetworkIngressControllers(): Promise<NetworkIngressControllerData[]>;
+  getNetworkIngressControllersByCluster(clusterId: string): Promise<NetworkIngressControllerData[]>;
+  getNetworkIngressControllerById(id: number): Promise<NetworkIngressControllerData | undefined>;
+  
+  // Network Load Balancer methods
+  getNetworkLoadBalancers(): Promise<NetworkLoadBalancerData[]>;
+  getNetworkLoadBalancersByCluster(clusterId: string): Promise<NetworkLoadBalancerData[]>;
+  getNetworkLoadBalancerById(id: number): Promise<NetworkLoadBalancerData | undefined>;
+  
+  // Network Route methods
+  getNetworkRoutes(): Promise<NetworkRouteData[]>;
+  getNetworkRoutesByCluster(clusterId: string): Promise<NetworkRouteData[]>;
+  getNetworkRouteById(id: number): Promise<NetworkRouteData | undefined>;
+  
+  // Network Policy methods
+  getNetworkPolicies(): Promise<NetworkPolicyData[]>;
+  getNetworkPoliciesByCluster(clusterId: string): Promise<NetworkPolicyData[]>;
+  getNetworkPolicyById(id: number): Promise<NetworkPolicyData | undefined>;
 }
 
 // Database implementation of storage
@@ -609,6 +629,429 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error deleting dependencies for cluster ${clusterId}:`, error);
       throw error;
+    }
+  }
+  
+  // Network Ingress Controller methods
+  async getNetworkIngressControllers(): Promise<NetworkIngressControllerData[]> {
+    try {
+      // Join with clusters to get cluster names
+      const result = await db.select({
+        id: networkIngressControllers.id,
+        clusterId: networkIngressControllers.clusterId,
+        name: networkIngressControllers.name,
+        namespace: networkIngressControllers.namespace,
+        type: networkIngressControllers.type,
+        status: networkIngressControllers.status,
+        version: networkIngressControllers.version,
+        ipAddress: networkIngressControllers.ipAddress,
+        trafficHandled: networkIngressControllers.trafficHandled,
+        detectedAt: networkIngressControllers.detectedAt,
+        metadata: networkIngressControllers.metadata
+      })
+      .from(networkIngressControllers);
+      
+      return result.map(controller => ({
+        id: controller.id,
+        clusterId: controller.clusterId,
+        name: controller.name,
+        namespace: controller.namespace,
+        type: controller.type,
+        status: controller.status,
+        version: controller.version,
+        ipAddress: controller.ipAddress,
+        trafficHandled: controller.trafficHandled,
+        detectedAt: new Date(controller.detectedAt).toISOString(),
+        metadata: controller.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error("Error fetching network ingress controllers from database:", error);
+      return [];
+    }
+  }
+  
+  async getNetworkIngressControllersByCluster(clusterId: string): Promise<NetworkIngressControllerData[]> {
+    try {
+      const result = await db.select({
+        id: networkIngressControllers.id,
+        clusterId: networkIngressControllers.clusterId,
+        name: networkIngressControllers.name,
+        namespace: networkIngressControllers.namespace,
+        type: networkIngressControllers.type,
+        status: networkIngressControllers.status,
+        version: networkIngressControllers.version,
+        ipAddress: networkIngressControllers.ipAddress,
+        trafficHandled: networkIngressControllers.trafficHandled,
+        detectedAt: networkIngressControllers.detectedAt,
+        metadata: networkIngressControllers.metadata
+      })
+      .from(networkIngressControllers)
+      .where(eq(networkIngressControllers.clusterId, clusterId));
+      
+      return result.map(controller => ({
+        id: controller.id,
+        clusterId: controller.clusterId,
+        name: controller.name,
+        namespace: controller.namespace,
+        type: controller.type,
+        status: controller.status,
+        version: controller.version,
+        ipAddress: controller.ipAddress,
+        trafficHandled: controller.trafficHandled,
+        detectedAt: new Date(controller.detectedAt).toISOString(),
+        metadata: controller.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error(`Error fetching network ingress controllers for cluster ${clusterId} from database:`, error);
+      return [];
+    }
+  }
+  
+  async getNetworkIngressControllerById(id: number): Promise<NetworkIngressControllerData | undefined> {
+    try {
+      const [controller] = await db.select({
+        id: networkIngressControllers.id,
+        clusterId: networkIngressControllers.clusterId,
+        name: networkIngressControllers.name,
+        namespace: networkIngressControllers.namespace,
+        type: networkIngressControllers.type,
+        status: networkIngressControllers.status,
+        version: networkIngressControllers.version,
+        ipAddress: networkIngressControllers.ipAddress,
+        trafficHandled: networkIngressControllers.trafficHandled,
+        detectedAt: networkIngressControllers.detectedAt,
+        metadata: networkIngressControllers.metadata
+      })
+      .from(networkIngressControllers)
+      .where(eq(networkIngressControllers.id, id));
+      
+      if (!controller) return undefined;
+      
+      return {
+        id: controller.id,
+        clusterId: controller.clusterId,
+        name: controller.name,
+        namespace: controller.namespace,
+        type: controller.type,
+        status: controller.status,
+        version: controller.version,
+        ipAddress: controller.ipAddress,
+        trafficHandled: controller.trafficHandled,
+        detectedAt: new Date(controller.detectedAt).toISOString(),
+        metadata: controller.metadata as Record<string, any> || {}
+      };
+    } catch (error) {
+      console.error(`Error fetching network ingress controller with ID ${id} from database:`, error);
+      return undefined;
+    }
+  }
+  
+  // Network Load Balancer methods
+  async getNetworkLoadBalancers(): Promise<NetworkLoadBalancerData[]> {
+    try {
+      const result = await db.select({
+        id: networkLoadBalancers.id,
+        clusterId: networkLoadBalancers.clusterId,
+        name: networkLoadBalancers.name,
+        namespace: networkLoadBalancers.namespace,
+        type: networkLoadBalancers.type,
+        status: networkLoadBalancers.status,
+        ipAddresses: networkLoadBalancers.ipAddresses,
+        trafficHandled: networkLoadBalancers.trafficHandled,
+        detectedAt: networkLoadBalancers.detectedAt,
+        metadata: networkLoadBalancers.metadata
+      })
+      .from(networkLoadBalancers);
+      
+      return result.map(lb => ({
+        id: lb.id,
+        clusterId: lb.clusterId,
+        name: lb.name,
+        namespace: lb.namespace,
+        type: lb.type,
+        status: lb.status,
+        ipAddresses: lb.ipAddresses,
+        trafficHandled: lb.trafficHandled,
+        detectedAt: new Date(lb.detectedAt).toISOString(),
+        metadata: lb.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error("Error fetching network load balancers from database:", error);
+      return [];
+    }
+  }
+  
+  async getNetworkLoadBalancersByCluster(clusterId: string): Promise<NetworkLoadBalancerData[]> {
+    try {
+      const result = await db.select({
+        id: networkLoadBalancers.id,
+        clusterId: networkLoadBalancers.clusterId,
+        name: networkLoadBalancers.name,
+        namespace: networkLoadBalancers.namespace,
+        type: networkLoadBalancers.type,
+        status: networkLoadBalancers.status,
+        ipAddresses: networkLoadBalancers.ipAddresses,
+        trafficHandled: networkLoadBalancers.trafficHandled,
+        detectedAt: networkLoadBalancers.detectedAt,
+        metadata: networkLoadBalancers.metadata
+      })
+      .from(networkLoadBalancers)
+      .where(eq(networkLoadBalancers.clusterId, clusterId));
+      
+      return result.map(lb => ({
+        id: lb.id,
+        clusterId: lb.clusterId,
+        name: lb.name,
+        namespace: lb.namespace,
+        type: lb.type,
+        status: lb.status,
+        ipAddresses: lb.ipAddresses,
+        trafficHandled: lb.trafficHandled,
+        detectedAt: new Date(lb.detectedAt).toISOString(),
+        metadata: lb.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error(`Error fetching network load balancers for cluster ${clusterId} from database:`, error);
+      return [];
+    }
+  }
+  
+  async getNetworkLoadBalancerById(id: number): Promise<NetworkLoadBalancerData | undefined> {
+    try {
+      const [lb] = await db.select({
+        id: networkLoadBalancers.id,
+        clusterId: networkLoadBalancers.clusterId,
+        name: networkLoadBalancers.name,
+        namespace: networkLoadBalancers.namespace,
+        type: networkLoadBalancers.type,
+        status: networkLoadBalancers.status,
+        ipAddresses: networkLoadBalancers.ipAddresses,
+        trafficHandled: networkLoadBalancers.trafficHandled,
+        detectedAt: networkLoadBalancers.detectedAt,
+        metadata: networkLoadBalancers.metadata
+      })
+      .from(networkLoadBalancers)
+      .where(eq(networkLoadBalancers.id, id));
+      
+      if (!lb) return undefined;
+      
+      return {
+        id: lb.id,
+        clusterId: lb.clusterId,
+        name: lb.name,
+        namespace: lb.namespace,
+        type: lb.type,
+        status: lb.status,
+        ipAddresses: lb.ipAddresses,
+        trafficHandled: lb.trafficHandled,
+        detectedAt: new Date(lb.detectedAt).toISOString(),
+        metadata: lb.metadata as Record<string, any> || {}
+      };
+    } catch (error) {
+      console.error(`Error fetching network load balancer with ID ${id} from database:`, error);
+      return undefined;
+    }
+  }
+  
+  // Network Route methods
+  async getNetworkRoutes(): Promise<NetworkRouteData[]> {
+    try {
+      const result = await db.select({
+        id: networkRoutes.id,
+        clusterId: networkRoutes.clusterId,
+        name: networkRoutes.name,
+        source: networkRoutes.source,
+        destination: networkRoutes.destination,
+        protocol: networkRoutes.protocol,
+        status: networkRoutes.status,
+        detectedAt: networkRoutes.detectedAt,
+        metadata: networkRoutes.metadata
+      })
+      .from(networkRoutes);
+      
+      return result.map(route => ({
+        id: route.id,
+        clusterId: route.clusterId,
+        name: route.name,
+        source: route.source,
+        destination: route.destination,
+        protocol: route.protocol,
+        status: route.status,
+        detectedAt: new Date(route.detectedAt).toISOString(),
+        metadata: route.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error("Error fetching network routes from database:", error);
+      return [];
+    }
+  }
+  
+  async getNetworkRoutesByCluster(clusterId: string): Promise<NetworkRouteData[]> {
+    try {
+      const result = await db.select({
+        id: networkRoutes.id,
+        clusterId: networkRoutes.clusterId,
+        name: networkRoutes.name,
+        source: networkRoutes.source,
+        destination: networkRoutes.destination,
+        protocol: networkRoutes.protocol,
+        status: networkRoutes.status,
+        detectedAt: networkRoutes.detectedAt,
+        metadata: networkRoutes.metadata
+      })
+      .from(networkRoutes)
+      .where(eq(networkRoutes.clusterId, clusterId));
+      
+      return result.map(route => ({
+        id: route.id,
+        clusterId: route.clusterId,
+        name: route.name,
+        source: route.source,
+        destination: route.destination,
+        protocol: route.protocol,
+        status: route.status,
+        detectedAt: new Date(route.detectedAt).toISOString(),
+        metadata: route.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error(`Error fetching network routes for cluster ${clusterId} from database:`, error);
+      return [];
+    }
+  }
+  
+  async getNetworkRouteById(id: number): Promise<NetworkRouteData | undefined> {
+    try {
+      const [route] = await db.select({
+        id: networkRoutes.id,
+        clusterId: networkRoutes.clusterId,
+        name: networkRoutes.name,
+        source: networkRoutes.source,
+        destination: networkRoutes.destination,
+        protocol: networkRoutes.protocol,
+        status: networkRoutes.status,
+        detectedAt: networkRoutes.detectedAt,
+        metadata: networkRoutes.metadata
+      })
+      .from(networkRoutes)
+      .where(eq(networkRoutes.id, id));
+      
+      if (!route) return undefined;
+      
+      return {
+        id: route.id,
+        clusterId: route.clusterId,
+        name: route.name,
+        source: route.source,
+        destination: route.destination,
+        protocol: route.protocol,
+        status: route.status,
+        detectedAt: new Date(route.detectedAt).toISOString(),
+        metadata: route.metadata as Record<string, any> || {}
+      };
+    } catch (error) {
+      console.error(`Error fetching network route with ID ${id} from database:`, error);
+      return undefined;
+    }
+  }
+  
+  // Network Policy methods
+  async getNetworkPolicies(): Promise<NetworkPolicyData[]> {
+    try {
+      const result = await db.select({
+        id: networkPolicies.id,
+        clusterId: networkPolicies.clusterId,
+        name: networkPolicies.name,
+        namespace: networkPolicies.namespace,
+        type: networkPolicies.type,
+        direction: networkPolicies.direction,
+        status: networkPolicies.status,
+        detectedAt: networkPolicies.detectedAt,
+        metadata: networkPolicies.metadata
+      })
+      .from(networkPolicies);
+      
+      return result.map(policy => ({
+        id: policy.id,
+        clusterId: policy.clusterId,
+        name: policy.name,
+        namespace: policy.namespace,
+        type: policy.type,
+        direction: policy.direction,
+        status: policy.status,
+        detectedAt: new Date(policy.detectedAt).toISOString(),
+        metadata: policy.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error("Error fetching network policies from database:", error);
+      return [];
+    }
+  }
+  
+  async getNetworkPoliciesByCluster(clusterId: string): Promise<NetworkPolicyData[]> {
+    try {
+      const result = await db.select({
+        id: networkPolicies.id,
+        clusterId: networkPolicies.clusterId,
+        name: networkPolicies.name,
+        namespace: networkPolicies.namespace,
+        type: networkPolicies.type,
+        direction: networkPolicies.direction,
+        status: networkPolicies.status,
+        detectedAt: networkPolicies.detectedAt,
+        metadata: networkPolicies.metadata
+      })
+      .from(networkPolicies)
+      .where(eq(networkPolicies.clusterId, clusterId));
+      
+      return result.map(policy => ({
+        id: policy.id,
+        clusterId: policy.clusterId,
+        name: policy.name,
+        namespace: policy.namespace,
+        type: policy.type,
+        direction: policy.direction,
+        status: policy.status,
+        detectedAt: new Date(policy.detectedAt).toISOString(),
+        metadata: policy.metadata as Record<string, any> || {}
+      }));
+    } catch (error) {
+      console.error(`Error fetching network policies for cluster ${clusterId} from database:`, error);
+      return [];
+    }
+  }
+  
+  async getNetworkPolicyById(id: number): Promise<NetworkPolicyData | undefined> {
+    try {
+      const [policy] = await db.select({
+        id: networkPolicies.id,
+        clusterId: networkPolicies.clusterId,
+        name: networkPolicies.name,
+        namespace: networkPolicies.namespace,
+        type: networkPolicies.type,
+        direction: networkPolicies.direction,
+        status: networkPolicies.status,
+        detectedAt: networkPolicies.detectedAt,
+        metadata: networkPolicies.metadata
+      })
+      .from(networkPolicies)
+      .where(eq(networkPolicies.id, id));
+      
+      if (!policy) return undefined;
+      
+      return {
+        id: policy.id,
+        clusterId: policy.clusterId,
+        name: policy.name,
+        namespace: policy.namespace,
+        type: policy.type,
+        direction: policy.direction,
+        status: policy.status,
+        detectedAt: new Date(policy.detectedAt).toISOString(),
+        metadata: policy.metadata as Record<string, any> || {}
+      };
+    } catch (error) {
+      console.error(`Error fetching network policy with ID ${id} from database:`, error);
+      return undefined;
     }
   }
 

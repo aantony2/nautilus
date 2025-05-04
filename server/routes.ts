@@ -200,6 +200,219 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Combined network resources endpoint for the Networking page
+  app.get('/api/network/resources', async (req, res) => {
+    try {
+      const [ingressControllers, loadBalancers, routes, policies] = await Promise.all([
+        storage.getNetworkIngressControllers(),
+        storage.getNetworkLoadBalancers(),
+        storage.getNetworkRoutes(),
+        storage.getNetworkPolicies()
+      ]);
+      
+      res.json({
+        ingressControllers,
+        loadBalancers,
+        routes,
+        policies
+      });
+    } catch (error) {
+      console.error('Error fetching network resources:', error);
+      res.status(500).json({ message: 'Failed to fetch network resources data' });
+    }
+  });
+  
+  // Network Ingress Controllers routes
+  app.get('/api/network/ingress-controllers', async (req, res) => {
+    try {
+      const controllers = await storage.getNetworkIngressControllers();
+      res.json(controllers);
+    } catch (error) {
+      console.error('Error fetching ingress controllers:', error);
+      res.status(500).json({ message: 'Failed to fetch ingress controller data' });
+    }
+  });
+
+  // Combined network resources for a specific cluster
+  app.get('/api/clusters/:clusterId/network/resources', async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const [ingressControllers, loadBalancers, routes, policies] = await Promise.all([
+        storage.getNetworkIngressControllersByCluster(clusterId),
+        storage.getNetworkLoadBalancersByCluster(clusterId),
+        storage.getNetworkRoutesByCluster(clusterId),
+        storage.getNetworkPoliciesByCluster(clusterId)
+      ]);
+      
+      res.json({
+        ingressControllers,
+        loadBalancers,
+        routes,
+        policies
+      });
+    } catch (error) {
+      console.error(`Error fetching network resources for cluster ${req.params.clusterId}:`, error);
+      res.status(500).json({ message: 'Failed to fetch network resources for this cluster' });
+    }
+  });
+
+  app.get('/api/clusters/:clusterId/network/ingress-controllers', async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const controllers = await storage.getNetworkIngressControllersByCluster(clusterId);
+      res.json(controllers);
+    } catch (error) {
+      console.error(`Error fetching ingress controllers for cluster ${req.params.clusterId}:`, error);
+      res.status(500).json({ message: 'Failed to fetch ingress controllers for this cluster' });
+    }
+  });
+
+  app.get('/api/network/ingress-controllers/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid ingress controller ID' });
+      }
+
+      const controller = await storage.getNetworkIngressControllerById(id);
+      
+      if (!controller) {
+        return res.status(404).json({ message: 'Ingress controller not found' });
+      }
+      
+      res.json(controller);
+    } catch (error) {
+      console.error(`Error fetching ingress controller ${req.params.id}:`, error);
+      res.status(500).json({ message: 'Failed to fetch ingress controller data' });
+    }
+  });
+
+  // Network Load Balancers routes
+  app.get('/api/network/load-balancers', async (req, res) => {
+    try {
+      const loadBalancers = await storage.getNetworkLoadBalancers();
+      res.json(loadBalancers);
+    } catch (error) {
+      console.error('Error fetching load balancers:', error);
+      res.status(500).json({ message: 'Failed to fetch load balancer data' });
+    }
+  });
+
+  app.get('/api/clusters/:clusterId/network/load-balancers', async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const loadBalancers = await storage.getNetworkLoadBalancersByCluster(clusterId);
+      res.json(loadBalancers);
+    } catch (error) {
+      console.error(`Error fetching load balancers for cluster ${req.params.clusterId}:`, error);
+      res.status(500).json({ message: 'Failed to fetch load balancers for this cluster' });
+    }
+  });
+
+  app.get('/api/network/load-balancers/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid load balancer ID' });
+      }
+
+      const loadBalancer = await storage.getNetworkLoadBalancerById(id);
+      
+      if (!loadBalancer) {
+        return res.status(404).json({ message: 'Load balancer not found' });
+      }
+      
+      res.json(loadBalancer);
+    } catch (error) {
+      console.error(`Error fetching load balancer ${req.params.id}:`, error);
+      res.status(500).json({ message: 'Failed to fetch load balancer data' });
+    }
+  });
+
+  // Network Routes
+  app.get('/api/network/routes', async (req, res) => {
+    try {
+      const routes = await storage.getNetworkRoutes();
+      res.json(routes);
+    } catch (error) {
+      console.error('Error fetching network routes:', error);
+      res.status(500).json({ message: 'Failed to fetch network route data' });
+    }
+  });
+
+  app.get('/api/clusters/:clusterId/network/routes', async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const routes = await storage.getNetworkRoutesByCluster(clusterId);
+      res.json(routes);
+    } catch (error) {
+      console.error(`Error fetching network routes for cluster ${req.params.clusterId}:`, error);
+      res.status(500).json({ message: 'Failed to fetch network routes for this cluster' });
+    }
+  });
+
+  app.get('/api/network/routes/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid network route ID' });
+      }
+
+      const route = await storage.getNetworkRouteById(id);
+      
+      if (!route) {
+        return res.status(404).json({ message: 'Network route not found' });
+      }
+      
+      res.json(route);
+    } catch (error) {
+      console.error(`Error fetching network route ${req.params.id}:`, error);
+      res.status(500).json({ message: 'Failed to fetch network route data' });
+    }
+  });
+
+  // Network Policies
+  app.get('/api/network/policies', async (req, res) => {
+    try {
+      const policies = await storage.getNetworkPolicies();
+      res.json(policies);
+    } catch (error) {
+      console.error('Error fetching network policies:', error);
+      res.status(500).json({ message: 'Failed to fetch network policy data' });
+    }
+  });
+
+  app.get('/api/clusters/:clusterId/network/policies', async (req, res) => {
+    try {
+      const { clusterId } = req.params;
+      const policies = await storage.getNetworkPoliciesByCluster(clusterId);
+      res.json(policies);
+    } catch (error) {
+      console.error(`Error fetching network policies for cluster ${req.params.clusterId}:`, error);
+      res.status(500).json({ message: 'Failed to fetch network policies for this cluster' });
+    }
+  });
+
+  app.get('/api/network/policies/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid network policy ID' });
+      }
+
+      const policy = await storage.getNetworkPolicyById(id);
+      
+      if (!policy) {
+        return res.status(404).json({ message: 'Network policy not found' });
+      }
+      
+      res.json(policy);
+    } catch (error) {
+      console.error(`Error fetching network policy ${req.params.id}:`, error);
+      res.status(500).json({ message: 'Failed to fetch network policy data' });
+    }
+  });
+
   // Settings routes
   app.get('/api/settings/database', getDatabaseSettings);
   app.post('/api/settings/database', updateDatabaseSettings);
