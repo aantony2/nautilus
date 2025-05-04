@@ -82,21 +82,10 @@ export default function Clusters() {
           ) : (
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white">
+                <CardTitle className="text-white mb-4">
                   <div className="flex items-center justify-between w-full">
                     <span>Kubernetes Clusters</span>
                     <div className="flex items-center space-x-2">
-                      <div className="relative w-64 mr-2">
-                        <Input
-                          type="text"
-                          placeholder="Search clusters..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="bg-slate-700 border-slate-600 text-white pl-10"
-                        />
-                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                      </div>
-                      
                       <Select value={providerFilter} onValueChange={setProviderFilter}>
                         <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-[130px]">
                           <div className="flex items-center">
@@ -137,6 +126,16 @@ export default function Clusters() {
                         <FileDown className="h-4 w-4" />
                       </Button>
                     </div>
+                  </div>
+                  <div className="relative w-full mt-4">
+                    <Input
+                      type="text"
+                      placeholder="Search clusters..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white pl-10 w-full"
+                    />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                   </div>
                 </CardTitle>
               </CardHeader>
