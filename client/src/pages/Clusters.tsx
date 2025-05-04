@@ -84,7 +84,7 @@ export default function Clusters() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-white mb-4">
                   <div className="flex items-center justify-between w-full">
-                    <span>Kubernetes Clusters</span>
+                    <span>Clusters</span>
                     <div className="flex items-center space-x-2">
                       <Select value={providerFilter} onValueChange={setProviderFilter}>
                         <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-[130px]">
