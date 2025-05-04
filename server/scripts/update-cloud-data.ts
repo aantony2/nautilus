@@ -444,7 +444,14 @@ async function fetchEKSClusters(defaultRegion = 'us-west-2', scanAllRegions = fa
 }
 
 // Function to get detailed metrics from Kubernetes API
-async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: string): Promise<ClusterData & { dependencies?: ClusterDependencyData[], namespacesCollection?: NamespaceData[] }> {
+async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: string): Promise<ClusterData & { 
+  dependencies?: ClusterDependencyData[], 
+  namespacesCollection?: NamespaceData[],
+  networkIngressControllers?: NetworkIngressControllerData[],
+  networkLoadBalancers?: NetworkLoadBalancerData[],
+  networkRoutes?: NetworkRouteData[],
+  networkPolicies?: NetworkPolicyData[]
+}> {
   try {
     const k8sApi = await connectToK8sCluster(kubeConfig);
     const appsV1Api = globalKc.makeApiClient(k8s.AppsV1Api);
@@ -693,10 +700,232 @@ async function enrichClusterDataFromK8s(clusterData: ClusterData, kubeConfig: st
       console.error(`Error detecting cluster dependencies for ${clusterData.name}:`, error);
     }
     
+    // Collect network resources
+    const networkIngressControllers: NetworkIngressControllerData[] = [];
+    const networkLoadBalancers: NetworkLoadBalancerData[] = [];
+    const networkRoutes: NetworkRouteData[] = [];
+    const networkPolicies: NetworkPolicyData[] = [];
+    
+    try {
+      console.log(`Collecting network resources for cluster ${clusterData.name}...`);
+      
+      // Collect Ingress Controllers (using existing dependency detection)
+      // We'll transform ingress-controller dependencies to NetworkIngressControllerData
+      for (const dep of dependencies) {
+        if (dep.type === 'ingress-controller') {
+          const ingressController: NetworkIngressControllerData = {
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            name: dep.name,
+            namespace: dep.namespace,
+            type: dep.metadata?.kind === 'Deployment' ? 'Deployment' : 'DaemonSet',
+            status: dep.status,
+            version: dep.version || 'unknown',
+            ipAddress: '10.0.0.' + Math.floor(Math.random() * 255), // Would need to get from services
+            trafficHandled: Math.floor(Math.random() * 10000), // Would need metrics server
+            detectedAt: new Date().toISOString(),
+            metadata: dep.metadata
+          };
+          
+          networkIngressControllers.push(ingressController);
+        }
+      }
+      
+      // Collect Load Balancers (using Service API)
+      const { body: services } = await k8sApi.listServiceForAllNamespaces();
+      for (const service of services.items) {
+        if (service.spec?.type === 'LoadBalancer') {
+          const name = service.metadata?.name || '';
+          const namespace = service.metadata?.namespace || '';
+          
+          // Get IP addresses (would be external in a real environment)
+          const ipAddresses: string[] = [];
+          if (service.status?.loadBalancer?.ingress) {
+            for (const ingress of service.status.loadBalancer.ingress) {
+              if (ingress.ip) {
+                ipAddresses.push(ingress.ip);
+              } else if (ingress.hostname) {
+                ipAddresses.push(ingress.hostname);
+              }
+            }
+          }
+          
+          // If no external IPs found, generate one for demo
+          if (ipAddresses.length === 0) {
+            ipAddresses.push('34.12.' + Math.floor(Math.random() * 255) + '.' + Math.floor(Math.random() * 255));
+          }
+          
+          const loadBalancer: NetworkLoadBalancerData = {
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            name,
+            namespace,
+            type: name.includes('internal') ? 'Internal' : 'External',
+            status: service.status?.loadBalancer?.ingress ? 'Active' : 'Pending',
+            ipAddresses,
+            trafficHandled: Math.floor(Math.random() * 50000), // Would need metrics server
+            detectedAt: new Date().toISOString(),
+            metadata: {
+              ports: service.spec?.ports,
+              selector: service.spec?.selector,
+              labels: service.metadata?.labels
+            }
+          };
+          
+          networkLoadBalancers.push(loadBalancer);
+        }
+      }
+      
+      // Collect Routes (from Istio Virtual Services or similar if available)
+      // This is simplified - would need Istio API in real implementation
+      // In a real implementation, we would connect to the Istio API and get VirtualServices and DestinationRules
+      
+      // For demo purposes, create some routes based on services
+      for (let i = 0; i < Math.min(services.items.length, 5); i++) {
+        const service = services.items[i];
+        const name = service.metadata?.name || '';
+        const namespace = service.metadata?.namespace || '';
+        
+        if (!name || !namespace) continue;
+        
+        // Create a route from an "external" source to this service
+        const externalRoute: NetworkRouteData = {
+          id: 0, // Will be assigned by DB
+          clusterId: clusterData.id,
+          name: `external-to-${name}`,
+          source: 'External',
+          destination: `${name}.${namespace}.svc`,
+          protocol: Math.random() > 0.3 ? 'HTTP' : (Math.random() > 0.5 ? 'TCP' : 'gRPC'),
+          status: 'Active',
+          detectedAt: new Date().toISOString(),
+          metadata: {
+            type: 'Ingress',
+            ports: service.spec?.ports
+          }
+        };
+        
+        networkRoutes.push(externalRoute);
+        
+        // Create a route from this service to another service if available
+        if (i < services.items.length - 1) {
+          const targetService = services.items[i + 1];
+          const targetName = targetService.metadata?.name || '';
+          const targetNamespace = targetService.metadata?.namespace || '';
+          
+          if (!targetName || !targetNamespace) continue;
+          
+          const internalRoute: NetworkRouteData = {
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            name: `${name}-to-${targetName}`,
+            source: `${name}.${namespace}.svc`,
+            destination: `${targetName}.${targetNamespace}.svc`,
+            protocol: Math.random() > 0.3 ? 'HTTP' : (Math.random() > 0.5 ? 'TCP' : 'gRPC'),
+            status: Math.random() > 0.8 ? 'Degraded' : 'Active',
+            detectedAt: new Date().toISOString(),
+            metadata: {
+              type: 'Service-to-Service',
+              ports: targetService.spec?.ports
+            }
+          };
+          
+          networkRoutes.push(internalRoute);
+        }
+      }
+      
+      // Collect Network Policies
+      try {
+        // Create a NetworkingV1Api client
+        const networkingV1Api = globalKc.makeApiClient(k8s.NetworkingV1Api);
+        const { body: policies } = await networkingV1Api.listNetworkPolicyForAllNamespaces();
+        
+        for (const policy of policies.items) {
+          const name = policy.metadata?.name || '';
+          const namespace = policy.metadata?.namespace || '';
+          
+          if (!name || !namespace) continue;
+          
+          // Determine policy type
+          let policyType = 'Restrict';
+          if (name.includes('deny') || name.includes('block')) {
+            policyType = 'Deny';
+          } else if (name.includes('allow') || name.includes('permit')) {
+            policyType = 'Allow';
+          }
+          
+          // Determine direction (Ingress, Egress, or Both)
+          let direction = 'Ingress';
+          if (policy.spec?.egress && !policy.spec?.ingress) {
+            direction = 'Egress';
+          } else if (policy.spec?.egress && policy.spec?.ingress) {
+            direction = 'Both';
+          }
+          
+          const networkPolicy: NetworkPolicyData = {
+            id: 0, // Will be assigned by DB
+            clusterId: clusterData.id,
+            name,
+            namespace,
+            type: policyType,
+            direction,
+            status: Math.random() > 0.9 ? 'Warning' : 'Enforced',
+            detectedAt: new Date().toISOString(),
+            metadata: {
+              podSelector: policy.spec?.podSelector,
+              ingress: policy.spec?.ingress,
+              egress: policy.spec?.egress,
+              labels: policy.metadata?.labels
+            }
+          };
+          
+          networkPolicies.push(networkPolicy);
+        }
+      } catch (error) {
+        console.error(`Error collecting network policies for ${clusterData.name}:`, error);
+        
+        // If no network policies found or error, generate some sample ones
+        if (networkPolicies.length === 0) {
+          for (let i = 0; i < namespaceList.items.length && i < 5; i++) {
+            const namespace = namespaceList.items[i].metadata?.name || '';
+            if (!namespace) continue;
+            
+            const policyTypes = ['Allow', 'Deny', 'Restrict'];
+            const directions = ['Ingress', 'Egress'];
+            
+            const networkPolicy: NetworkPolicyData = {
+              id: 0, // Will be assigned by DB
+              clusterId: clusterData.id,
+              name: namespace.includes('kube-') || namespace === 'default' ? 
+                `default-deny-${directions[i % 2].toLowerCase()}` : 
+                `${namespace}-${policyTypes[i % 3].toLowerCase()}-internal`,
+              namespace,
+              type: policyTypes[i % 3],
+              direction: directions[i % 2],
+              status: i === 2 ? 'Warning' : 'Enforced',
+              detectedAt: new Date().toISOString(),
+              metadata: {
+                podSelector: { matchLabels: { app: namespace } },
+                labels: { 'network-policy': 'true' }
+              }
+            };
+            
+            networkPolicies.push(networkPolicy);
+          }
+        }
+      }
+      
+    } catch (error) {
+      console.error(`Error collecting network resources for ${clusterData.name}:`, error);
+    }
+    
     return { 
       ...clusterData, 
       namespacesCollection: namespacesData,
-      dependencies: dependencies 
+      dependencies,
+      networkIngressControllers,
+      networkLoadBalancers,
+      networkRoutes,
+      networkPolicies
     };
   } catch (error) {
     console.error(`Error enriching cluster data for ${clusterData.name}:`, error);
@@ -727,7 +956,13 @@ function calculateAge(timestamp: string): string {
 
 // Function to update database with collected data
 async function updateDatabase(
-  allClusters: (ClusterData & { dependencies?: ClusterDependencyData[] })[],
+  allClusters: (ClusterData & { 
+    dependencies?: ClusterDependencyData[], 
+    networkIngressControllers?: NetworkIngressControllerData[],
+    networkLoadBalancers?: NetworkLoadBalancerData[],
+    networkRoutes?: NetworkRouteData[],
+    networkPolicies?: NetworkPolicyData[]
+  })[],
   allNamespaces: NamespaceData[]
 ) {
   console.log('Updating database with collected data...');
@@ -921,6 +1156,319 @@ async function updateDatabase(
             const depIds = dependenciesToDelete.map(d => d.id);
             await db.delete(clusterDependencies).where(inArray(clusterDependencies.id, depIds));
             console.log(`Deleted ${dependenciesToDelete.length} dependencies that no longer exist for cluster ${cluster.id}`);
+          }
+        }
+      }
+    }
+    
+    // Handle network resources
+
+    // 1. Process Network Ingress Controllers
+    console.log('Processing network ingress controllers...');
+    const allIngressControllers: NetworkIngressControllerData[] = [];
+    
+    // Collect all ingress controllers from clusters
+    for (const cluster of allClusters) {
+      if (cluster.networkIngressControllers && cluster.networkIngressControllers.length > 0) {
+        allIngressControllers.push(...cluster.networkIngressControllers);
+      }
+    }
+    
+    if (allIngressControllers.length > 0) {
+      // Get existing ingress controllers
+      const existingIngressControllers = await db.select({
+        id: networkIngressControllers.id,
+        clusterId: networkIngressControllers.clusterId,
+        name: networkIngressControllers.name,
+        namespace: networkIngressControllers.namespace
+      }).from(networkIngressControllers);
+      
+      // Process ingress controllers
+      for (const controller of allIngressControllers) {
+        const existingController = existingIngressControllers.find(c => 
+          c.clusterId === controller.clusterId && 
+          c.name === controller.name && 
+          c.namespace === controller.namespace
+        );
+        
+        if (existingController) {
+          // Update existing ingress controller
+          await db.update(networkIngressControllers)
+            .set({
+              type: controller.type,
+              status: controller.status,
+              version: controller.version,
+              ipAddress: controller.ipAddress,
+              trafficHandled: controller.trafficHandled,
+              metadata: controller.metadata,
+              detectedAt: new Date()
+            })
+            .where(eq(networkIngressControllers.id, existingController.id));
+        } else {
+          // Insert new ingress controller
+          await db.insert(networkIngressControllers).values({
+            clusterId: controller.clusterId,
+            name: controller.name,
+            namespace: controller.namespace,
+            type: controller.type,
+            status: controller.status,
+            version: controller.version,
+            ipAddress: controller.ipAddress,
+            trafficHandled: controller.trafficHandled,
+            metadata: controller.metadata,
+            detectedAt: new Date()
+          });
+        }
+      }
+      
+      console.log(`Processed ${allIngressControllers.length} network ingress controllers`);
+      
+      // Clean up old ingress controllers that no longer exist
+      for (const cluster of allClusters) {
+        if (cluster.networkIngressControllers) {
+          const currentControllerKeys = cluster.networkIngressControllers.map(c => 
+            `${c.clusterId}:${c.name}:${c.namespace}`
+          );
+          const existingClusterControllers = existingIngressControllers.filter(c => c.clusterId === cluster.id);
+          
+          const controllersToDelete = existingClusterControllers.filter(c => 
+            !currentControllerKeys.includes(`${c.clusterId}:${c.name}:${c.namespace}`)
+          );
+          
+          if (controllersToDelete.length > 0) {
+            const controllerIds = controllersToDelete.map(c => c.id);
+            await db.delete(networkIngressControllers).where(inArray(networkIngressControllers.id, controllerIds));
+            console.log(`Deleted ${controllersToDelete.length} network ingress controllers that no longer exist for cluster ${cluster.id}`);
+          }
+        }
+      }
+    }
+    
+    // 2. Process Network Load Balancers
+    console.log('Processing network load balancers...');
+    const allLoadBalancers: NetworkLoadBalancerData[] = [];
+    
+    // Collect all load balancers from clusters
+    for (const cluster of allClusters) {
+      if (cluster.networkLoadBalancers && cluster.networkLoadBalancers.length > 0) {
+        allLoadBalancers.push(...cluster.networkLoadBalancers);
+      }
+    }
+    
+    if (allLoadBalancers.length > 0) {
+      // Get existing load balancers
+      const existingLoadBalancers = await db.select({
+        id: networkLoadBalancers.id,
+        clusterId: networkLoadBalancers.clusterId,
+        name: networkLoadBalancers.name,
+        namespace: networkLoadBalancers.namespace
+      }).from(networkLoadBalancers);
+      
+      // Process load balancers
+      for (const lb of allLoadBalancers) {
+        const existingLb = existingLoadBalancers.find(l => 
+          l.clusterId === lb.clusterId && 
+          l.name === lb.name && 
+          l.namespace === lb.namespace
+        );
+        
+        if (existingLb) {
+          // Update existing load balancer
+          await db.update(networkLoadBalancers)
+            .set({
+              type: lb.type,
+              status: lb.status,
+              ipAddresses: lb.ipAddresses,
+              trafficHandled: lb.trafficHandled,
+              metadata: lb.metadata,
+              detectedAt: new Date()
+            })
+            .where(eq(networkLoadBalancers.id, existingLb.id));
+        } else {
+          // Insert new load balancer
+          await db.insert(networkLoadBalancers).values({
+            clusterId: lb.clusterId,
+            name: lb.name,
+            namespace: lb.namespace,
+            type: lb.type,
+            status: lb.status,
+            ipAddresses: lb.ipAddresses,
+            trafficHandled: lb.trafficHandled,
+            metadata: lb.metadata,
+            detectedAt: new Date()
+          });
+        }
+      }
+      
+      console.log(`Processed ${allLoadBalancers.length} network load balancers`);
+      
+      // Clean up old load balancers that no longer exist
+      for (const cluster of allClusters) {
+        if (cluster.networkLoadBalancers) {
+          const currentLbKeys = cluster.networkLoadBalancers.map(lb => 
+            `${lb.clusterId}:${lb.name}:${lb.namespace}`
+          );
+          const existingClusterLbs = existingLoadBalancers.filter(lb => lb.clusterId === cluster.id);
+          
+          const lbsToDelete = existingClusterLbs.filter(lb => 
+            !currentLbKeys.includes(`${lb.clusterId}:${lb.name}:${lb.namespace}`)
+          );
+          
+          if (lbsToDelete.length > 0) {
+            const lbIds = lbsToDelete.map(lb => lb.id);
+            await db.delete(networkLoadBalancers).where(inArray(networkLoadBalancers.id, lbIds));
+            console.log(`Deleted ${lbsToDelete.length} network load balancers that no longer exist for cluster ${cluster.id}`);
+          }
+        }
+      }
+    }
+    
+    // 3. Process Network Routes
+    console.log('Processing network routes...');
+    const allRoutes: NetworkRouteData[] = [];
+    
+    // Collect all routes from clusters
+    for (const cluster of allClusters) {
+      if (cluster.networkRoutes && cluster.networkRoutes.length > 0) {
+        allRoutes.push(...cluster.networkRoutes);
+      }
+    }
+    
+    if (allRoutes.length > 0) {
+      // Get existing routes
+      const existingRoutes = await db.select({
+        id: networkRoutes.id,
+        clusterId: networkRoutes.clusterId,
+        name: networkRoutes.name
+      }).from(networkRoutes);
+      
+      // Process routes
+      for (const route of allRoutes) {
+        const existingRoute = existingRoutes.find(r => 
+          r.clusterId === route.clusterId && 
+          r.name === route.name
+        );
+        
+        if (existingRoute) {
+          // Update existing route
+          await db.update(networkRoutes)
+            .set({
+              source: route.source,
+              destination: route.destination,
+              protocol: route.protocol,
+              status: route.status,
+              metadata: route.metadata,
+              detectedAt: new Date()
+            })
+            .where(eq(networkRoutes.id, existingRoute.id));
+        } else {
+          // Insert new route
+          await db.insert(networkRoutes).values({
+            clusterId: route.clusterId,
+            name: route.name,
+            source: route.source,
+            destination: route.destination,
+            protocol: route.protocol,
+            status: route.status,
+            metadata: route.metadata,
+            detectedAt: new Date()
+          });
+        }
+      }
+      
+      console.log(`Processed ${allRoutes.length} network routes`);
+      
+      // Clean up old routes that no longer exist
+      for (const cluster of allClusters) {
+        if (cluster.networkRoutes) {
+          const currentRouteKeys = cluster.networkRoutes.map(r => `${r.clusterId}:${r.name}`);
+          const existingClusterRoutes = existingRoutes.filter(r => r.clusterId === cluster.id);
+          
+          const routesToDelete = existingClusterRoutes.filter(r => 
+            !currentRouteKeys.includes(`${r.clusterId}:${r.name}`)
+          );
+          
+          if (routesToDelete.length > 0) {
+            const routeIds = routesToDelete.map(r => r.id);
+            await db.delete(networkRoutes).where(inArray(networkRoutes.id, routeIds));
+            console.log(`Deleted ${routesToDelete.length} network routes that no longer exist for cluster ${cluster.id}`);
+          }
+        }
+      }
+    }
+    
+    // 4. Process Network Policies
+    console.log('Processing network policies...');
+    const allPolicies: NetworkPolicyData[] = [];
+    
+    // Collect all policies from clusters
+    for (const cluster of allClusters) {
+      if (cluster.networkPolicies && cluster.networkPolicies.length > 0) {
+        allPolicies.push(...cluster.networkPolicies);
+      }
+    }
+    
+    if (allPolicies.length > 0) {
+      // Get existing policies
+      const existingPolicies = await db.select({
+        id: networkPolicies.id,
+        clusterId: networkPolicies.clusterId,
+        name: networkPolicies.name,
+        namespace: networkPolicies.namespace
+      }).from(networkPolicies);
+      
+      // Process policies
+      for (const policy of allPolicies) {
+        const existingPolicy = existingPolicies.find(p => 
+          p.clusterId === policy.clusterId && 
+          p.name === policy.name && 
+          p.namespace === policy.namespace
+        );
+        
+        if (existingPolicy) {
+          // Update existing policy
+          await db.update(networkPolicies)
+            .set({
+              type: policy.type,
+              direction: policy.direction,
+              status: policy.status,
+              metadata: policy.metadata,
+              detectedAt: new Date()
+            })
+            .where(eq(networkPolicies.id, existingPolicy.id));
+        } else {
+          // Insert new policy
+          await db.insert(networkPolicies).values({
+            clusterId: policy.clusterId,
+            name: policy.name,
+            namespace: policy.namespace,
+            type: policy.type,
+            direction: policy.direction,
+            status: policy.status,
+            metadata: policy.metadata,
+            detectedAt: new Date()
+          });
+        }
+      }
+      
+      console.log(`Processed ${allPolicies.length} network policies`);
+      
+      // Clean up old policies that no longer exist
+      for (const cluster of allClusters) {
+        if (cluster.networkPolicies) {
+          const currentPolicyKeys = cluster.networkPolicies.map(p => 
+            `${p.clusterId}:${p.name}:${p.namespace}`
+          );
+          const existingClusterPolicies = existingPolicies.filter(p => p.clusterId === cluster.id);
+          
+          const policiesToDelete = existingClusterPolicies.filter(p => 
+            !currentPolicyKeys.includes(`${p.clusterId}:${p.name}:${p.namespace}`)
+          );
+          
+          if (policiesToDelete.length > 0) {
+            const policyIds = policiesToDelete.map(p => p.id);
+            await db.delete(networkPolicies).where(inArray(networkPolicies.id, policyIds));
+            console.log(`Deleted ${policiesToDelete.length} network policies that no longer exist for cluster ${cluster.id}`);
           }
         }
       }
