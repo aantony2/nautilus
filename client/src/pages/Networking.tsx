@@ -49,7 +49,7 @@ export default function Networking() {
   });
 
   // Fetch clusters for filter dropdown
-  const { data: clusters } = useQuery({
+  const { data: clusters } = useQuery<Array<{id: string, name: string}>>({
     queryKey: ['/api/clusters'],
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

@@ -17,7 +17,6 @@ async function clearExistingData() {
 
 async function insertSampleNetworkData() {
   console.log('Inserting sample network data...');
-  const now = new Date();
   
   // Sample ingress controllers
   const ingressControllers = [
@@ -69,7 +68,7 @@ async function insertSampleNetworkData() {
       }
     },
     {
-      clusterId: 'eks-prod-us-east-1',
+      clusterId: 'gke-stage-cluster1',
       name: 'aws-load-balancer-controller',
       namespace: 'kube-system',
       type: 'AWS ALB',
@@ -128,7 +127,7 @@ async function insertSampleNetworkData() {
       }
     },
     {
-      clusterId: 'eks-prod-us-east-1',
+      clusterId: 'gke-stage-cluster1',
       name: 'data-processing-lb',
       namespace: 'data-pipeline',
       type: 'Internal',
@@ -183,7 +182,7 @@ async function insertSampleNetworkData() {
       }
     },
     {
-      clusterId: 'eks-prod-us-east-1',
+      clusterId: 'gke-stage-cluster1',
       name: 'internal-grpc',
       source: 'services/frontend',
       destination: 'services/backend',
@@ -192,7 +191,7 @@ async function insertSampleNetworkData() {
       metadata: { port: 8080, tls: true, timeout: "15s" }
     },
     {
-      clusterId: 'eks-prod-us-east-1',
+      clusterId: 'gke-stage-cluster1',
       name: 'metrics-collection',
       source: 'monitoring/prometheus',
       destination: 'app-services/*/metrics',
@@ -256,7 +255,7 @@ async function insertSampleNetworkData() {
       }
     },
     {
-      clusterId: 'eks-prod-us-east-1',
+      clusterId: 'gke-stage-cluster1',
       name: 'security-policy',
       namespace: 'kube-system',
       type: 'SecurityPolicy',
