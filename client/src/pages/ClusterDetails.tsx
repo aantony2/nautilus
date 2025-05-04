@@ -10,18 +10,20 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { ClusterData, ClusterMetrics } from "@shared/schema";
 
 export default function ClusterDetails() {
   const [, setLocation] = useLocation();
   const params = useParams<{ id: string }>();
   const { toast } = useToast();
 
-  const { data: cluster, isLoading, refetch } = useQuery({
+  const { data: cluster, isLoading, refetch } = useQuery<ClusterData>({
     queryKey: ['/api/clusters', params.id],
   });
 
-  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = useQuery({
+  const { data: metrics, isLoading: metricsLoading, refetch: refetchMetrics } = useQuery<ClusterMetrics>({
     queryKey: ['/api/clusters', params.id, 'metrics'],
+    retry: 1,
   });
 
   const refreshData = () => {
@@ -177,13 +179,13 @@ export default function ClusterDetails() {
                     <CardTitle>Resource Usage</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {metricsLoading ? (
+                    {metricsLoading || !metrics ? (
                       <div className="space-y-4">
                         <Skeleton className="h-8 w-full" />
                         <Skeleton className="h-8 w-full" />
                         <Skeleton className="h-8 w-full" />
                       </div>
-                    ) : (
+                    ) : metrics && metrics.cpu && metrics.memory && metrics.storage ? (
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <div className="flex justify-between">
@@ -208,6 +210,10 @@ export default function ClusterDetails() {
                           </div>
                           <Progress value={metrics.storage.percentage} className="h-2" />
                         </div>
+                      </div>
+                    ) : (
+                      <div className="py-4 text-center text-muted-foreground">
+                        <p>No metrics data available</p>
                       </div>
                     )}
                   </CardContent>
