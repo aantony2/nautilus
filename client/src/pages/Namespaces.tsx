@@ -322,7 +322,13 @@ export default function Namespaces() {
                                     <Layers className="h-4 w-4 text-primary" />
                                   </div>
                                   <div className="ml-4">
-                                    <div className="text-sm font-medium text-white truncate max-w-[150px]" title={namespace.name}>{namespace.name}</div>
+                                    <div 
+                                      className="text-sm font-medium text-white truncate max-w-[150px] cursor-pointer hover:text-primary" 
+                                      title={namespace.name}
+                                      onClick={() => setLocation(`/namespaces/${namespace.id}`)}
+                                    >
+                                      {namespace.name}
+                                    </div>
                                     <div className="text-xs text-slate-400 truncate max-w-[150px]" title={namespace.clusterId}>{namespace.clusterId}</div>
                                   </div>
                                 </div>
@@ -381,13 +387,7 @@ export default function Namespaces() {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <Button 
-                                  variant="link" 
-                                  className="text-primary"
-                                  onClick={() => setLocation(`/namespaces/${namespace.id}`)}
-                                >
-                                  Details
-                                </Button>
+                                {/* Details link removed, namespace name is now clickable */}
                               </td>
                             </tr>
                           ))

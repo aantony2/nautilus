@@ -81,7 +81,12 @@ export default function ClusterStatusTable({ clusters, filteredClusters }: Clust
                         <ServerIcon className="h-4 w-4 text-primary" />
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-white">{cluster.name}</div>
+                        <div 
+                          className="text-sm font-medium text-white cursor-pointer hover:text-primary"
+                          onClick={() => setLocation(`/clusters/${cluster.id}`)}
+                        >
+                          {cluster.name}
+                        </div>
                         <div className="text-xs text-slate-400">{cluster.id}</div>
                       </div>
                     </div>
@@ -135,13 +140,7 @@ export default function ClusterStatusTable({ clusters, filteredClusters }: Clust
                     {cluster.region}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <Button 
-                      variant="link" 
-                      className="text-primary"
-                      onClick={() => setLocation(`/clusters/${cluster.id}`)}
-                    >
-                      Details
-                    </Button>
+                    {/* Details link removed, cluster name is now clickable */}
                   </td>
                 </tr>
               ))
