@@ -284,6 +284,90 @@ export const insertClusterDependencySchema = createInsertSchema(clusterDependenc
 export type InsertClusterDependency = z.infer<typeof insertClusterDependencySchema>;
 export type ClusterDependency = typeof clusterDependencies.$inferSelect;
 
+// Network resources tables
+export const networkIngressControllers = pgTable("network_ingress_controllers", {
+  id: serial("id").primaryKey(),
+  clusterId: text("cluster_id").notNull().references(() => clusters.clusterId),
+  name: text("name").notNull(),
+  namespace: text("namespace").notNull(),
+  type: text("type").notNull(),
+  status: text("status").notNull(),
+  version: text("version").notNull(),
+  ipAddress: text("ip_address").notNull(),
+  trafficHandled: integer("traffic_handled").notNull(),
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+  metadata: jsonb("metadata")
+});
+
+export const insertNetworkIngressControllerSchema = createInsertSchema(networkIngressControllers).omit({
+  id: true,
+  detectedAt: true
+});
+
+export type InsertNetworkIngressController = z.infer<typeof insertNetworkIngressControllerSchema>;
+export type NetworkIngressController = typeof networkIngressControllers.$inferSelect;
+
+export const networkLoadBalancers = pgTable("network_load_balancers", {
+  id: serial("id").primaryKey(),
+  clusterId: text("cluster_id").notNull().references(() => clusters.clusterId),
+  name: text("name").notNull(),
+  namespace: text("namespace").notNull(),
+  type: text("type").notNull(),
+  status: text("status").notNull(),
+  ipAddresses: text("ip_addresses").array().notNull(),
+  trafficHandled: integer("traffic_handled").notNull(),
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+  metadata: jsonb("metadata")
+});
+
+export const insertNetworkLoadBalancerSchema = createInsertSchema(networkLoadBalancers).omit({
+  id: true,
+  detectedAt: true
+});
+
+export type InsertNetworkLoadBalancer = z.infer<typeof insertNetworkLoadBalancerSchema>;
+export type NetworkLoadBalancer = typeof networkLoadBalancers.$inferSelect;
+
+export const networkRoutes = pgTable("network_routes", {
+  id: serial("id").primaryKey(),
+  clusterId: text("cluster_id").notNull().references(() => clusters.clusterId),
+  name: text("name").notNull(),
+  source: text("source").notNull(),
+  destination: text("destination").notNull(),
+  protocol: text("protocol").notNull(),
+  status: text("status").notNull(),
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+  metadata: jsonb("metadata")
+});
+
+export const insertNetworkRouteSchema = createInsertSchema(networkRoutes).omit({
+  id: true,
+  detectedAt: true
+});
+
+export type InsertNetworkRoute = z.infer<typeof insertNetworkRouteSchema>;
+export type NetworkRoute = typeof networkRoutes.$inferSelect;
+
+export const networkPolicies = pgTable("network_policies", {
+  id: serial("id").primaryKey(),
+  clusterId: text("cluster_id").notNull().references(() => clusters.clusterId),
+  name: text("name").notNull(),
+  namespace: text("namespace").notNull(),
+  type: text("type").notNull(),
+  direction: text("direction").notNull(),
+  status: text("status").notNull(),
+  detectedAt: timestamp("detected_at").notNull().defaultNow(),
+  metadata: jsonb("metadata")
+});
+
+export const insertNetworkPolicySchema = createInsertSchema(networkPolicies).omit({
+  id: true,
+  detectedAt: true
+});
+
+export type InsertNetworkPolicy = z.infer<typeof insertNetworkPolicySchema>;
+export type NetworkPolicy = typeof networkPolicies.$inferSelect;
+
 // Cluster dependency data interface for API responses
 export interface ClusterDependencyData {
   id: number;
@@ -292,6 +376,58 @@ export interface ClusterDependencyData {
   name: string;
   namespace: string;
   version?: string;
+  status: string;
+  detectedAt: string;
+  metadata?: Record<string, any>;
+}
+
+// Networking resource interfaces
+export interface NetworkIngressControllerData {
+  id: number;
+  clusterId: string;
+  name: string;
+  namespace: string;
+  type: string;
+  status: string;
+  version: string;
+  ipAddress: string;
+  trafficHandled: number;
+  detectedAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface NetworkLoadBalancerData {
+  id: number;
+  clusterId: string;
+  name: string;
+  namespace: string;
+  type: string;
+  status: string;
+  ipAddresses: string[];
+  trafficHandled: number;
+  detectedAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface NetworkRouteData {
+  id: number;
+  clusterId: string;
+  name: string;
+  source: string;
+  destination: string;
+  protocol: string;
+  status: string;
+  detectedAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface NetworkPolicyData {
+  id: number;
+  clusterId: string;
+  name: string;
+  namespace: string;
+  type: string;
+  direction: string;
   status: string;
   detectedAt: string;
   metadata?: Record<string, any>;
