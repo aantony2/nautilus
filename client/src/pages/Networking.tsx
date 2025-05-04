@@ -460,17 +460,196 @@ export default function Networking() {
             </TabsContent>
             
             <TabsContent value="policies">
-              <Card className="bg-slate-800 border-slate-700 shadow-md">
-                <CardHeader>
-                  <CardTitle>Network Policies</CardTitle>
-                  <CardDescription>Control traffic flow between pods</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center text-slate-400 py-20">
-                    Network policy management will be implemented in future updates
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 gap-6">
+                <Card className="bg-slate-800 border-slate-700 shadow-md">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Network Policies</CardTitle>
+                      <Shield className="h-5 w-5 text-primary" />
+                    </div>
+                    <CardDescription>Control traffic flow between pods and namespaces</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Namespace</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Direction</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            default-deny-ingress
+                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
+                          </TableCell>
+                          <TableCell>default</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-red-950 text-red-300 border-red-800">
+                              Deny
+                            </Badge>
+                          </TableCell>
+                          <TableCell>Ingress</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Enforced</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            api-allow-frontend
+                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
+                          </TableCell>
+                          <TableCell>api</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
+                              Allow
+                            </Badge>
+                          </TableCell>
+                          <TableCell>Ingress</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Enforced</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            database-restrict-access
+                            <div className="text-xs text-slate-400 mt-1">aks-dev-cluster2</div>
+                          </TableCell>
+                          <TableCell>database</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-yellow-950 text-yellow-300 border-yellow-800">
+                              Restrict
+                            </Badge>
+                          </TableCell>
+                          <TableCell>Ingress</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <AlertTriangle size={16} className="text-yellow-500 mr-1" />
+                              <span>Warning</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            microservices-allow-internal
+                            <div className="text-xs text-slate-400 mt-1">eks-stage-cluster1</div>
+                          </TableCell>
+                          <TableCell>microservices</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
+                              Allow
+                            </Badge>
+                          </TableCell>
+                          <TableCell>Egress</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Enforced</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            monitoring-allow-all
+                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
+                          </TableCell>
+                          <TableCell>monitoring</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
+                              Allow
+                            </Badge>
+                          </TableCell>
+                          <TableCell>Egress</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Enforced</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                    <div className="flex justify-end mt-4">
+                      <Button variant="outline" size="sm">
+                        <ExternalLink size={14} className="mr-2" />
+                        View All Policies
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800 border-slate-700 shadow-md">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Policy Compliance</CardTitle>
+                      <Shield className="h-5 w-5 text-accent" />
+                    </div>
+                    <CardDescription>Compliance metrics and violations</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Total Policies</div>
+                        <div className="text-2xl font-bold">23</div>
+                        <div className="text-xs text-slate-400 mt-1">Across all clusters</div>
+                      </div>
+                      
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Compliance Rate</div>
+                        <div className="text-2xl font-bold">96.5%</div>
+                        <div className="text-xs text-green-400 mt-1 flex items-center">
+                          <span className="text-green-400 mr-1">↑</span> 2.1% increase
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Active Violations</div>
+                        <div className="text-2xl font-bold">3</div>
+                        <div className="text-xs text-yellow-400 mt-1 flex items-center">
+                          <AlertTriangle size={12} className="mr-1" /> Needs attention
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Last Audit</div>
+                        <div className="text-2xl font-bold">2h ago</div>
+                        <div className="text-xs text-green-400 mt-1 flex items-center">
+                          <Check size={12} className="mr-1" /> Successful
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-lg bg-yellow-900/20 border border-yellow-800 text-yellow-300 mb-4">
+                      <div className="flex items-start">
+                        <AlertTriangle className="h-5 w-5 mt-0.5 mr-2 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-medium mb-1">Warning: Policy Violation Detected</h4>
+                          <p className="text-sm text-yellow-300/80">
+                            The <strong>database-restrict-access</strong> policy has detected 2 unauthorized access attempts in the last hour.
+                            Please review the access logs and update the policy if needed.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <Button variant="outline" size="sm">
+                        <Shield size={14} className="mr-2" />
+                        Run Policy Audit
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </main>
