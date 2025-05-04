@@ -285,17 +285,178 @@ export default function Networking() {
             </TabsContent>
             
             <TabsContent value="routing">
-              <Card className="bg-slate-800 border-slate-700 shadow-md">
-                <CardHeader>
-                  <CardTitle>Traffic Routes</CardTitle>
-                  <CardDescription>Traffic routing and management</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center text-slate-400 py-20">
-                    Traffic routing visualization will be implemented in future updates
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 gap-6">
+                <Card className="bg-slate-800 border-slate-700 shadow-md">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Traffic Routes</CardTitle>
+                      <Network className="h-5 w-5 text-secondary" />
+                    </div>
+                    <CardDescription>Traffic routing and management rules</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Source</TableHead>
+                          <TableHead>Destination</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            api-gateway-route
+                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
+                          </TableCell>
+                          <TableCell>External</TableCell>
+                          <TableCell>api-gateway.default.svc</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
+                              HTTP
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Active</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            frontend-backend-route
+                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
+                          </TableCell>
+                          <TableCell>frontend.default.svc</TableCell>
+                          <TableCell>backend-api.default.svc</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-blue-950 text-blue-300 border-blue-800">
+                              gRPC
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Active</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            admin-portal-route
+                            <div className="text-xs text-slate-400 mt-1">eks-stage-cluster1</div>
+                          </TableCell>
+                          <TableCell>External</TableCell>
+                          <TableCell>admin-portal.default.svc</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
+                              HTTP
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <AlertTriangle size={16} className="text-yellow-500 mr-1" />
+                              <span>Degraded</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            microservice-a-b-route
+                            <div className="text-xs text-slate-400 mt-1">aks-dev-cluster2</div>
+                          </TableCell>
+                          <TableCell>service-a.apps.svc</TableCell>
+                          <TableCell>service-b.apps.svc</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-purple-950 text-purple-300 border-purple-800">
+                              TCP
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Active</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">
+                            auth-service-route
+                            <div className="text-xs text-slate-400 mt-1">gke-prod-cluster1</div>
+                          </TableCell>
+                          <TableCell>gateway.istio-system.svc</TableCell>
+                          <TableCell>auth.security.svc</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="bg-green-950 text-green-300 border-green-800">
+                              HTTP
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Check size={16} className="text-green-500 mr-1" />
+                              <span>Active</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                    <div className="flex justify-end mt-4">
+                      <Button variant="outline" size="sm">
+                        <ExternalLink size={14} className="mr-2" />
+                        View All Routes
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-slate-800 border-slate-700 shadow-md">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Route Metrics</CardTitle>
+                      <Activity className="h-5 w-5 text-accent" />
+                    </div>
+                    <CardDescription>Traffic flow statistics</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Total Routes</div>
+                        <div className="text-2xl font-bold">17</div>
+                        <div className="text-xs text-green-400 mt-1 flex items-center">
+                          <Check size={12} className="mr-1" /> All healthy
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Total Traffic</div>
+                        <div className="text-2xl font-bold">8.4k req/s</div>
+                        <div className="text-xs text-green-400 mt-1 flex items-center">
+                          <span className="text-green-400 mr-1">↑</span> 12% from yesterday
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Avg. Latency</div>
+                        <div className="text-2xl font-bold">187ms</div>
+                        <div className="text-xs text-red-400 mt-1 flex items-center">
+                          <span className="text-red-400 mr-1">↑</span> 15ms increase
+                        </div>
+                      </div>
+                      
+                      <div className="bg-slate-700/50 p-4 rounded-lg">
+                        <div className="text-xs text-slate-400 mb-1">Error Rate</div>
+                        <div className="text-2xl font-bold">0.12%</div>
+                        <div className="text-xs text-green-400 mt-1 flex items-center">
+                          <span className="text-green-400 mr-1">↓</span> 0.03% decrease
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
             
             <TabsContent value="policies">
