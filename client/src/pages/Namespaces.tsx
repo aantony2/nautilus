@@ -216,22 +216,12 @@ export default function Namespaces() {
           <div className="space-y-6">
             <Card className="bg-slate-800 border-slate-700">
               <CardHeader className="pb-3">
-                <div className="flex flex-col w-full space-y-2">
-                  <div className="flex flex-col sm:flex-row gap-2 w-full justify-end">
-                    <div className="relative w-full sm:w-64">
-                      <Input
-                        type="text"
-                        placeholder="Search namespaces..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="bg-slate-700 border-slate-600 text-white pl-10 w-full"
-                      />
-                      <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-                    </div>
-                    
-                    <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-white mb-4">
+                  <div className="flex items-center justify-between w-full">
+                    <span>Namespaces</span>
+                    <div className="flex items-center space-x-2">
                       <Select value={statusFilter} onValueChange={setStatusFilter}>
-                        <SelectTrigger className="w-full sm:w-[130px] bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-[130px]">
                           <div className="flex items-center">
                             <Filter className="h-3.5 w-3.5 mr-2" />
                             <SelectValue placeholder="Status" />
@@ -243,11 +233,12 @@ export default function Namespaces() {
                           <SelectItem value="Terminating">Terminating</SelectItem>
                         </SelectContent>
                       </Select>
+                      
                       <Select
                         value={clusterFilter}
                         onValueChange={setClusterFilter}
                       >
-                        <SelectTrigger className="w-full sm:w-[130px] bg-slate-700 border-slate-600 text-white">
+                        <SelectTrigger className="bg-slate-700 border-slate-600 text-white w-[130px]">
                           <div className="flex items-center">
                             <Server className="h-3.5 w-3.5 mr-2" />
                             <SelectValue placeholder="Cluster" />
@@ -274,7 +265,17 @@ export default function Namespaces() {
                       </Button>
                     </div>
                   </div>
-                </div>
+                  <div className="relative w-full mt-4">
+                    <Input
+                      type="text"
+                      placeholder="Search namespaces..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-slate-700 border-slate-600 text-white pl-10 w-full"
+                    />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+                  </div>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="bg-slate-800 rounded-lg shadow-lg overflow-hidden">
