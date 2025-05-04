@@ -16,7 +16,15 @@ import {
   clusterDependencies,
   InsertClusterDependency,
   ClusterDependency,
-  ClusterDependencyData
+  ClusterDependencyData,
+  networkIngressControllers,
+  NetworkIngressControllerData,
+  networkLoadBalancers,
+  NetworkLoadBalancerData,
+  networkRoutes,
+  NetworkRouteData,
+  networkPolicies,
+  NetworkPolicyData
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";

@@ -60,6 +60,136 @@ async function createClusterDependenciesTable(): Promise<void> {
   }
 }
 
+// Function to create the network resources tables
+async function createNetworkResourceTables(): Promise<void> {
+  log('Checking if network resource tables exist...');
+  
+  // 1. Check and create network_ingress_controllers table
+  const ingressControllersExists = await checkIfTableExists('network_ingress_controllers');
+  if (!ingressControllersExists) {
+    log('Creating network_ingress_controllers table...');
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS network_ingress_controllers (
+          id SERIAL PRIMARY KEY,
+          cluster_id TEXT NOT NULL REFERENCES clusters(cluster_id),
+          name TEXT NOT NULL,
+          namespace TEXT NOT NULL,
+          type TEXT NOT NULL,
+          status TEXT NOT NULL,
+          version TEXT NOT NULL,
+          ip_address TEXT NOT NULL,
+          traffic_handled INTEGER NOT NULL,
+          detected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          metadata JSONB
+        )
+      `);
+      log('Successfully created network_ingress_controllers table.');
+    } catch (error) {
+      log(`Error creating network_ingress_controllers table: ${error}`);
+      throw error;
+    } finally {
+      client.release();
+    }
+  } else {
+    log('network_ingress_controllers table already exists.');
+  }
+  
+  // 2. Check and create network_load_balancers table
+  const loadBalancersExists = await checkIfTableExists('network_load_balancers');
+  if (!loadBalancersExists) {
+    log('Creating network_load_balancers table...');
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS network_load_balancers (
+          id SERIAL PRIMARY KEY,
+          cluster_id TEXT NOT NULL REFERENCES clusters(cluster_id),
+          name TEXT NOT NULL,
+          namespace TEXT NOT NULL,
+          type TEXT NOT NULL,
+          status TEXT NOT NULL,
+          ip_addresses TEXT[] NOT NULL,
+          traffic_handled INTEGER NOT NULL,
+          detected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          metadata JSONB
+        )
+      `);
+      log('Successfully created network_load_balancers table.');
+    } catch (error) {
+      log(`Error creating network_load_balancers table: ${error}`);
+      throw error;
+    } finally {
+      client.release();
+    }
+  } else {
+    log('network_load_balancers table already exists.');
+  }
+  
+  // 3. Check and create network_routes table
+  const routesExists = await checkIfTableExists('network_routes');
+  if (!routesExists) {
+    log('Creating network_routes table...');
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS network_routes (
+          id SERIAL PRIMARY KEY,
+          cluster_id TEXT NOT NULL REFERENCES clusters(cluster_id),
+          name TEXT NOT NULL,
+          source TEXT NOT NULL,
+          destination TEXT NOT NULL,
+          protocol TEXT NOT NULL,
+          status TEXT NOT NULL,
+          detected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          metadata JSONB
+        )
+      `);
+      log('Successfully created network_routes table.');
+    } catch (error) {
+      log(`Error creating network_routes table: ${error}`);
+      throw error;
+    } finally {
+      client.release();
+    }
+  } else {
+    log('network_routes table already exists.');
+  }
+  
+  // 4. Check and create network_policies table
+  const policiesExists = await checkIfTableExists('network_policies');
+  if (!policiesExists) {
+    log('Creating network_policies table...');
+    const client = await pool.connect();
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS network_policies (
+          id SERIAL PRIMARY KEY,
+          cluster_id TEXT NOT NULL REFERENCES clusters(cluster_id),
+          name TEXT NOT NULL,
+          namespace TEXT NOT NULL,
+          type TEXT NOT NULL,
+          direction TEXT NOT NULL,
+          status TEXT NOT NULL,
+          detected_at TIMESTAMP NOT NULL DEFAULT NOW(),
+          metadata JSONB
+        )
+      `);
+      log('Successfully created network_policies table.');
+    } catch (error) {
+      log(`Error creating network_policies table: ${error}`);
+      throw error;
+    } finally {
+      client.release();
+    }
+  } else {
+    log('network_policies table already exists.');
+  }
+  
+  log('All network resource tables are ready.');
+}
+
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -113,6 +243,10 @@ app.use((req, res, next) => {
     // Create dependencies table if it doesn't exist
     await createClusterDependenciesTable();
     log("Dependencies table migration complete");
+    
+    // Create network resource tables if they don't exist
+    await createNetworkResourceTables();
+    log("Network resource tables migration complete");
     
     // Initialize application settings from database
     await initializeSettings();
